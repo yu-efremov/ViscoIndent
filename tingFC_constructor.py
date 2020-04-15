@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Apr  8 21:52:06 2020
-
-@author: Yuri
+code for the construction of force-indentation curves
 """
 import numpy as np
 import matplotlib.pyplot as plt
