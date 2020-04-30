@@ -91,6 +91,13 @@ class App(QMainWindow):
         # with open('force_curve_data.csv', mode='w', newline='') as csv_file:
         #     wr = csv.writer(csv_file)
         #     wr.writerow(self.curvedata)
+        
+    def changeviscomodel(self):
+        viscomodel = str(self.cbDel2.currentText())
+        viscpars = relaxation_function([1, 1, 1, 1], viscomodel, np.zeros(1))[2]
+        self.labelViscoHelp.setText(viscomodel + ' pars: '+ str(viscpars))
+        
+            
 
     def __init__(self):
         super().__init__()
@@ -151,11 +158,13 @@ class App(QMainWindow):
         
         indx2 = self.table.model().index(5, 1)
         pix2 = QPersistentModelIndex(indx2)
-        cbDel2 = QComboBox()
-        cbDel2.currentIndexChanged[str].connect(lambda txt, pix2=pix2:self.table.model().setData(QModelIndex(pix2), txt, 0))
-        cbDel2.addItems(modellist())
-        cbDel2.setCurrentIndex(9)
-        self.table.setIndexWidget(indx2,cbDel2)
+        self.cbDel2 = QComboBox()
+        self.cbDel2.currentIndexChanged[str].connect(lambda txt, pix2=pix2:self.table.model().setData(QModelIndex(pix2), txt, 0))
+        self.cbDel2.addItems(modellist())
+        self.cbDel2.setCurrentIndex(9)
+        self.cbDel2.currentIndexChanged.connect(self.changeviscomodel)
+        self.table.setIndexWidget(indx2,self.cbDel2)
+        self.table.setRowHidden(3, True)
         
         self.table2 = QtWidgets.QTableView()
         self.model2 = TableModel(dataind)
@@ -181,7 +190,7 @@ class App(QMainWindow):
         self.graphT = QComboBox()
         self.graphT.addItems(['Force versus Indentation','Force versus Time'])
         
-        self.labelViscoHelp = QLabel(str(cbDel2.currentText()) + ' pars: E1, alpha', self)
+        self.labelViscoHelp = QLabel(str(self.cbDel2.currentText()) + ' pars: E1, alpha', self)
         
         layout1 = QHBoxLayout()
         layout2 = QVBoxLayout()
