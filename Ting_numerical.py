@@ -60,10 +60,14 @@ def ting_numerical(par, Poisson, Radius, dT, MaxInd, Height, modelting, modelpro
     ForceR = np.zeros(len(indentationfull)) # Lee_Radok force prediction
     ForceT = np.zeros(len(indentationfull)) # Ting's force prediction
     
+    # for i in range (1, PointN-1):  # MaxInd or PointN-1
+    #     ndx = np.asarray(range (0, i+1))  # integration limits, dummy variable
+    #     ForceR[i]= K1 * (BEC[i]*np.trapz(Et[i-ndx]*ind2speed[ndx], time[ndx]) + 
+    #                      power*eta*indentationfull[i]**(power-1)*indspeed[i]*BECspeed[i])
+    
     for i in range (1, PointN-1):  # MaxInd or PointN-1
-        ndx = np.asarray(range (0, i+1))  # integration limits, dummy variable
-        ForceR[i]= K1 * (BEC[i]*np.trapz(Et[i-ndx]*ind2speed[ndx], time[ndx]) + 
-                         power*eta*indentationfull[i]**(power-1)*indspeed[i]*BECspeed[i])
+        ForceR[i]= K1 * (BEC[i]*np.trapz(Et[i::-1]*ind2speed[:i+1], dx=dT) + power*eta*indentationfull[i]**(power-1)*indspeed[i]*BECspeed[i])
+    
     ForceT[:MaxInd]=ForceR[:MaxInd]
     # plt.plot(indentationfull,ForceR)
     
@@ -81,8 +85,9 @@ def ting_numerical(par, Poisson, Radius, dT, MaxInd, Height, modelting, modelpro
 
         for j in range (b, localend-1, -1): 
             if localend == 0:
-                ndx = np.asarray(range (j, i+1))
-                res2[j] = np.trapz(Et[i-ndx]*indspeed[ndx], time[ndx]) + eta*indspeed[i]
+                # ndx = np.asarray(range (j, i+1))
+                # res2[j] = np.trapz(Et[i-ndx]*indspeed[ndx], time[ndx]) + eta*indspeed[i]
+                res2[j] = np.trapz(Et[i-j::-1]*indspeed[j:i+1], dx=dT) + eta*indspeed[i]
                 if res2[j]>0:
                     localend=j
                     
@@ -110,12 +115,13 @@ def ting_numerical(par, Poisson, Radius, dT, MaxInd, Height, modelting, modelpro
             #print("position3")
         
         cntrad[i] = cntrad[t1_ndx[i]]  # a is recalculated
-        #indentationfull2[i] = indentationfull[t1_ndx[i]]  # effective indentation
+        # indentationfull2[i] = indentationfull[t1_ndx[i]]  # effective indentation
         
-        ndx = np.asarray(range (1, t1_ndx[i]+1))
+        # ndx = np.asarray(range (0, t1_ndx[i]+1))
         ijk=t1_ndx[i]
-        ForceT[i] = K1 * (BEC[ijk]*np.trapz(Et[i-ndx]*ind2speed[ndx], time[ndx]))
-    
+        # ForceT[i] = K1 * (BEC[ijk]*np.trapz(Et[i-ndx]*ind2speed[ndx], time[ndx]))
+        # ForceT[i] = K1 * (BEC[ijk]*np.trapz(Et[i:i-ijk-1:-1]*ind2speed[:ijk+1], dx=dT))
+        ForceT[i] = K1 * (BEC[ijk]*np.trapz(Et[i:i-ijk-1:-1]*ind2speed[:ijk+1], dx=dT))
     cntrad=cntrad[0:len(indentationfull)]
     contact_time = endofalgorithm2*dT
     #plt.plot(indentationfull,Force2)  # linestyle=':'
@@ -143,10 +149,9 @@ def smoothM(d, parS):
 
 if __name__ == '__main__':
     import time
-    t1 = time.time()
     Poisson = 0.5
     Radius = 1
-    MaxInd = 1000
+    MaxInd = 501
     dT = 1/MaxInd   
     Height = 0
     modelting = 'springpot-dashpot-parallel'
@@ -156,6 +161,7 @@ if __name__ == '__main__':
     indentationfull = 50*indentationfull
     # plt.plot(t, indentationfull)
     par = [10000, 0.4, 0]
+    t1 = time.time()
     ForceT, cntrad, contact_time, t1_ndx, Et, ForceR = ting_numerical(par, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationfull)
     t2 = time.time()
     print(t2-t1)
@@ -165,4 +171,4 @@ if __name__ == '__main__':
     g = plt.figure(2)
     PointN = len(indentationfull)
     time = np.linspace(0,dT*(PointN-1), PointN)
-    plt.plot(time, cntrad)
+    plt.plot(time, t1_ndx)
