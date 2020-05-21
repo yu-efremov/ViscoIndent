@@ -31,10 +31,13 @@ def modellist():
 def relaxation_function(par, model, Time):
     eta0 = 0
     Einf0 = 0
-    parnames = ['par1','par2','par3', 'par4']
+    parnames = ['par1', 'par2', 'par3', 'par4', 'par5']
     warnings.filterwarnings("ignore", message="divide by zero encountered in power")
     warnings.filterwarnings("ignore", message="divide by zero encountered in double_scalars")
-    
+    warnings.filterwarnings("ignore", message="divide by zero encountered in reciprocal")
+    warnings.filterwarnings("ignore", message="invalid value encountered in multiply")
+    warnings.filterwarnings("ignore", message="divide by zero encountered in true_divide")
+
     if model == 'elastic':
         parnames = ['E']
         E = par[0]
@@ -43,14 +46,14 @@ def relaxation_function(par, model, Time):
         parnames = ['Einf', 'eta']
         Einf = par[0]
         eta0 = par[1]
-        Et = Einf*np.ones(Time.shape);
-    elif model == 'MW':  # Maxwell   
+        Et = Einf*np.ones(Time.shape)
+    elif model == 'MW':  # Maxwell
         parnames = ['E0', 'tau']
         E0 = par[0]
         tau = par[1]
         relfun = lambda E0, tau, t: E0*exp(-t/tau)
         Et = relfun(E0, tau, Time)
-    elif model =='SLS':
+    elif model == 'SLS':
         parnames = ['E0', 'tau', 'Einf']
         E0 = par[0]
         tau = par[1]
@@ -58,7 +61,7 @@ def relaxation_function(par, model, Time):
         Es1 = E0 - Einf
         Es2 = Einf
         relfun1 = lambda E0, Einf, tau, t: (E0 - Einf) * exp(-t/tau) + Einf
-        relfun2 = lambda E0, Einf, tau, t: E0 - (E0 - Einf) * (1 - exp(-t / tau))
+        # relfun2 = lambda E0, Einf, tau, t: E0 - (E0 - Einf) * (1 - exp(-t / tau))
         Et = relfun1(E0, Einf, tau, Time)
     elif model == 'SLS2':
         parnames = ['Es1', 'tau', 'Es2']
@@ -70,7 +73,7 @@ def relaxation_function(par, model, Time):
         relfun = lambda Es1, Es2, tau, t: Es1 * exp(-t / tau) + Es2
         Et = relfun(Es1, Es2, tau, Time)
     elif model == 'dSLS':   #double SLS, 5pars
-        parnames = ['Es1', 'tau1', 'Es2', 'tau2']
+        parnames = ['Es1', 'tau1', 'Es2', 'tau2', 'Einf']
         Es1 = par[0]
         tau1 = par[1]
         Es2 = par[2]
@@ -82,7 +85,7 @@ def relaxation_function(par, model, Time):
     elif model == 'springpot':   #1 -single spring-pot 'PLR'
         parnames = ['Ea1', 'alpha']
         Ea1 = par[0]
-        alpha = par[1];
+        alpha = par[1]
         relfun = lambda Ea1, alpha, t: Ea1 * t ** (-alpha)
         Et = relfun(Ea1, alpha, Time)
     elif model == 'springpot-spring-parallel':   # 'PLRe'
@@ -117,7 +120,7 @@ def relaxation_function(par, model, Time):
     elif model == 'springpot-spring-serial2':   # 'fractMW' fractional Maxwell model with tau
         parnames = ['Ea1', 'alpha', 'tau']
         Ea1 = par[0]
-        alpha = par[1];
+        alpha = par[1]
         tau = par[2]
         Es0 = Ea1 * tau ** (-alpha)
         relfun = lambda Es, alpha, tau, t: Ea1 * tau ** (-alpha) * mlf(alpha, 1, -(t / tau) ** alpha)
@@ -125,7 +128,7 @@ def relaxation_function(par, model, Time):
     elif model == 'springpot-dashpot-serial':   # 'fractMW' fractional Maxwell model
         parnames = ['Ea1', 'alpha', 'eta']
         Ea1 = par[0]
-        alpha = par[1];
+        alpha = par[1]
         eta = par[2]
         tau = (eta / Ea1) ** (1 / (1 - alpha))
         relfun = lambda Ea1, alpha, eta, t:\
@@ -134,16 +137,16 @@ def relaxation_function(par, model, Time):
     elif model == 'springpot-dashpot-serial2':   # 'fractMW' fractional Maxwell model
         parnames = ['Ea1', 'alpha', 'tau']
         Ea1 = par[0]
-        alpha = par[1];
+        alpha = par[1]
         tau = par[2]
         eta = Ea1 * tau ** (1 - alpha)
         relfun = lambda Ea1, alpha, tau, t:\
         Ea1 * (t * tau) ** (-alpha) * mlf(1 - alpha, 1 - alpha, -(t / tau) ** (1 - alpha))
         Et = relfun(Ea1, alpha, tau, Time)
     elif model == 'springpot-springpot-parallel':
-        parnames = ['Ea1', 'alpha', 'Eb1','betta']
+        parnames = ['Ea1', 'alpha', 'Eb1', 'betta']
         Ea1 = par[0]
-        alpha = par[1];
+        alpha = par[1]
         Eb1 = par[2]
         betta = par[3]
         relfun = lambda Ea1, alpha, Eb1, betta, t: Ea1 * t ** (-alpha) + Eb1 * t ** (-betta)
@@ -151,7 +154,7 @@ def relaxation_function(par, model, Time):
     elif model == 'springpot-springpot-serial':
         parnames = ['Ea1', 'alpha', 'Eb1', 'betta']
         Ea1 = par[0]
-        alpha = par[1];
+        alpha = par[1]
         Eb1 = par[2]
         betta = par[3]
         tau = (Ea1 / Eb1) ** (1 / (alpha - betta))
@@ -162,7 +165,7 @@ def relaxation_function(par, model, Time):
     elif model == 'springpot-springpot-serial2':   #with tau
         parnames = ['Ea1', 'alpha', 'betta', 'tau']
         Ea1 = par[0]
-        alpha = par[1];
+        alpha = par[1]
         betta = par[2]
         tau = par[3]
         Eb1 = Ea1 / tau ** (alpha - betta)
@@ -172,29 +175,29 @@ def relaxation_function(par, model, Time):
     elif model == 'springpot-springpot-serial3':   #with tau
         parnames = ['Eb1', 'alpha', 'betta', 'tau']
         Eb1 = par[0]
-        alpha = par[1];
+        alpha = par[1]
         betta = par[2]
         tau = par[3]
         Ea1 = Eb1 * tau ** (alpha - betta)
         relfun = lambda Eb1, alpha, betta, tau, t:\
         Eb1 * (t * tau) ** (-betta) * mlf(alpha - betta, 1 - betta, -(t / tau) ** (alpha - betta))
-        #relfun = @(Eb1, alpha, betta, tau, t) Eb1.*tau.^betta.*t.^(-betta).*mlf(alpha-betta,1-betta,-(t./tau).^(alpha-betta));    
+        #relfun = @(Eb1, alpha, betta, tau, t) Eb1.*tau.^betta.*t.^(-betta).*mlf(alpha-betta,1-betta,-(t./tau).^(alpha-betta))
         Et = relfun(Eb1, alpha, betta, tau, Time)
     elif model == 'fractionalSLS':   #fractional SLS (Zener) model
         parnames = ['Ea1', 'alpha', 'Es1', 'Es2']
         Ea1 = par[0]
-        alpha = par[1];
+        alpha = par[1]
         Es1 = par[2]
         Es2 = par[3]
         tau = (Ea1 / Es1) ** (1 / alpha)
-        E0 = Es1 + Es2;
+        E0 = Es1 + Es2
         relfun = lambda Ea1, alpha, Es1, Es2, t:\
         Es1 * mlf(alpha, 1, -(Es1 / Ea1) * t ** alpha) + Es2
         Et = relfun(Ea1, alpha, Es1, Es2, Time)
     elif model == 'fractionalSLS2':   #fractional SLS (Zener) model with tau, E0, Einf
         parnames = ['E0', 'alpha', 'tau', 'Einf']
         E0 = par[0]
-        alpha = par[1];
+        alpha = par[1]
         tau = par[2]
         Einf = par[3]
         Es1 = E0 - Einf
@@ -205,7 +208,7 @@ def relaxation_function(par, model, Time):
     elif model == 'fractionalMWe':    # fractional model, springpot-dashpot in parallel with spring
         parnames = ['Ea1', 'alpha', 'eta', 'Es1']
         Ea1 = par[0]
-        alpha = par[1]; 
+        alpha = par[1]
         eta = par[2]
         Es1 = par[3]
         tau = (eta / Ea1) ** (1 / (1 - alpha))
@@ -215,7 +218,7 @@ def relaxation_function(par, model, Time):
     elif model == 'fractionalMWe2':    # fractional model, springpot-dashpot in parallel with spring
         parnames = ['Ea1', 'alpha', 'tau', 'Es1']
         Ea1 = par[0]
-        alpha = par[1];
+        alpha = par[1]
         tau = par[2]
         Es1 = par[3]
         eta = Ea1 * tau ** (1 - alpha)
@@ -236,20 +239,14 @@ def relaxation_function(par, model, Time):
     return Et, eta0, parnames
     
     
-    
-    
-    
-    
-    
-    
-    
 if __name__ == '__main__':
 
     # plt.figure
     Time = np.logspace(-5, 5, 100)
-    # Et=relaxation_function([1,0.1,0.1,0.1,0.1], 'SLS2', Time);
-    # [Et, eta] = relaxation_function([1,10,1,0.1,0.1], 'dSLS', Time);
-    # [Et, eta] = relaxation_function([2, 0.1,1024], 'springpot-spring-serial2', Time);
-    [Et, eta, parnames] = relaxation_function([100, 0.5, 300, 20], 'fractionalSLS', Time);
+    Time = np.linspace(0, 1, 1000)
+    # Et=relaxation_function([1,0.1,0.1,0.1,0.1], 'SLS2', Time)
+    [Et, eta, parnames] = relaxation_function([1, 10, 1, 0.01, 0.1], 'dSLS', Time)
+    [Et, eta, parnames] = relaxation_function([2, 0.1, 1024], 'springpot-dashpot-serial', Time)
+    # [Et, eta, parnames] = relaxation_function([100, 0.5, 300, 20], 'fractionalSLS', Time)[0:2]
     plt.loglog(Time, Et)
     

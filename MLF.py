@@ -87,7 +87,7 @@ def LTInversion(t,lamda,alpha,beta,gama,log_epsilon):
     zd = -2.*mu*u + 2j*mu
     zexp = np.exp(z*t)
     F = z**(alpha*gama-beta)/(z**alpha - lamda)**gama*zd
-    S = zexp*F ;
+    S = zexp*F
     Integral = h*np.sum(S)/2./np.pi/1j
 
     # Evaluation of residues
@@ -265,8 +265,8 @@ def ml_(z, alpha, beta, gama):
     
 def mlf(alpha, beta, zarray):
     val =np.empty(zarray.shape)
-    for ii in range(zarray.shape[0]):
-        val[ii] = ml_(zarray[ii], alpha, beta, gama=1.)
+    for ij in range(zarray.shape[0]):
+        val[ij] = ml_(zarray[ij], alpha, beta, gama=1.)
     return val
     
 
@@ -283,5 +283,5 @@ if __name__ == '__main__':
     # plt.plot(x, mlf(-x*x, 0.1, 1, 1))
     plt.figure(2)
     t = np.logspace(-5, 5, 100)
-    test=mlf(0.7, 1, -(100/300)*t**0.7);
+    test=mlf(0.7, 1, -(100/300)*t**0.7)
     plt.loglog(t,test)
