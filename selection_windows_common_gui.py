@@ -12,6 +12,7 @@ import numpy as np
 
 from Pars_class import Pars_gen
 from import_AFM_data import Bruker_import
+from import_ARDF import ARDF_import
 from make_Results import make_Results
 from utils_ViscoIndent import load_AFM_data_pickle, load_AFM_data_pickle_short
 
@@ -28,6 +29,9 @@ class selection_win1(QMainWindow):
 
         self.btn_loadSPM = QPushButton("Load .spm", self)
         self.btn_loadSPM.clicked.connect(self.load_spm)
+        
+        self.btn_loadARDF = QPushButton("Load .ARDF", self)
+        self.btn_loadARDF.clicked.connect(self.load_ardf)
 
         self.btn_loadDAT = QPushButton("Load .dat", self)
         self.btn_loadDAT.clicked.connect(self.load_dat)
@@ -54,6 +58,7 @@ class selection_win1(QMainWindow):
         layoutA = QHBoxLayout()
         layoutA.addWidget(self.btn_loadSPM)
         layoutA.addWidget(self.btn_loadDAT)
+        layoutA.addWidget(self.btn_loadARDF)
         layoutA.addWidget(self.btn_loadWorkspace)
         layoutA.addWidget(self.btn_Exit)
         layoutM = QVBoxLayout()
@@ -107,6 +112,48 @@ class selection_win1(QMainWindow):
             self.selection_win1_gui.Results = self.Results
             self.close()
             self.selection_win1_gui.initUI2()
+            
+    def load_ardf(self):
+        options = QFileDialog.Options()
+        self.fileName, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "examples/", "All Files (*);;Python Files (*.py)", options=options)
+        filedir0 = self.fileName
+        self.supress_ROIquestion = 0
+
+        # filedir0 = 'D:/MailCloud/AFM_data/BrukerResolve/MISIS/20190928_PC3_MMAE_ACALold2/area1-01.0_00000.spm'
+        # filedir0 = 'examples/Bruker_forcevolume_cells.spm'
+        fnameshort = filedir0.split("/")
+        fnameshort = fnameshort[-1]
+        Pars = Pars_gen()
+        Pars.probe_shape = 'sphere'
+        Pars.probe_dimension = 5000
+        Pars.Poisson = 0.5         # Poisson's ratio of the sample
+        Pars.dT = 1e-3                 # Sampling time
+        Pars.height = 0
+        Pars.HeightfromZ = 0
+        Pars.viscomodel = 'elastic'
+        Pars.hydro.corr = 1
+        Pars.hydro.corr_type = 2
+        Pars.hydro.speedcoef = 4.0e-7
+        Pars.cp_adjust = 1
+
+        Pars.filedir = []
+        Pars.filedir.append(filedir0)
+        Pars.fnameshort = []
+        Pars.fnameshort.append(fnameshort)
+        self.Data = {}
+        [Pars, Data] = ARDF_import(Pars)
+        print('data loaded from ARDF file')
+        self.Data = Data
+        self.Pars = Pars
+        self.Results = make_Results(np.shape(self.Data)[0])
+        print(self.Data[0])
+        self.Results.Pixel = self.Data[:, 0]  # remove nans
+        if hasattr(self.selection_win1_gui, 'commongui'):
+            self.selection_win1_gui.Pars = self.Pars
+            self.selection_win1_gui.Data = self.Data
+            self.selection_win1_gui.Results = self.Results
+            self.close()
+            self.selection_win1_gui.initUI2()            
 
     def load_dat(self):
         print('load dat')
