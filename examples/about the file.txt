@@ -1,0 +1,1 @@
+filedir0 = 'D:/MailCloud/AFM_data/BrukerResolve/enucleated-nuclei/20190719_HT1080-NucBlue_ACALold2/ccell050607.0_00000.spm'
