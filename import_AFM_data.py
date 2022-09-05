@@ -163,12 +163,12 @@ class Bruker_import:
                 Data.append(currentcurve)
                 Data3.append([ij, currentcurve])
 
-            Data3 = np.asarray(Data3)
-            Data = np.asarray([nPix, Data])
+            Data3 = np.asarray(Data3, dtype=object)
+            Data = np.asarray([nPix, Data], dtype=object)
             Data = Data.transpose()
 
             if len(Data.shape) < 2:
-                print('Data reformat')
+                print('Data reformatted')
 
         self.Data = Data3  # contains pixel numbers and curve data
         # self.rawData = rawData  # raw data if needed

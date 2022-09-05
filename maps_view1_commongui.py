@@ -171,20 +171,23 @@ class maps_view(QMainWindow):
             pass
 
     def showROI(self):
-        regions = self.Pars.ROIPars.reg_nums
+        num_of_ROIs = np.max(self.Pars.ROIPars.reg_nums_all)  # self.Pars.ROIPars.num_of_ROIs
+        # regions = self.Pars.ROIPars.reg_nums
         region_numbers = self.Pars.ROIPars.reg_nums_all
-        map_regions = np.reshape(region_numbers, self.Pars.topo.shape)
-        for ii in range(0, self.Pars.ROIPars.num_of_ROIs):
+        # map_regions = np.reshape(region_numbers, self.Pars.topo.shape)
+        for ii in range(1, num_of_ROIs+1):
             xc = np.arange(self.Pars.topo.shape[0])
             yc = np.arange(self.Pars.topo.shape[1])
-            self.ax1.contour(xc, yc, np.reshape(regions[ii], self.Pars.topo.shape))
+            region = np.copy(region_numbers)
+            region = np.where(region != ii, 0, region)
+            self.ax1.contour(xc, yc, np.reshape(region, self.Pars.topo.shape))
             map_regions = np.reshape(np.copy(region_numbers), self.Pars.topo.shape)
-            map_regions[map_regions != ii+1] = 0
+            map_regions[map_regions != ii] = 0
             labelXcoorF = np.maximum.reduce(map_regions, 0)
-            labelXcoor = np.mean(xc[(labelXcoorF == ii+1)])
+            labelXcoor = np.mean(xc[(labelXcoorF == ii)])
             labelYcoorF = np.maximum.reduce(map_regions, 1)
-            labelYcoor = np.mean(yc[(labelYcoorF == ii+1)])
-            self.ax1.text(labelXcoor, labelYcoor, str(ii+1),
+            labelYcoor = np.mean(yc[(labelYcoorF == ii)])
+            self.ax1.text(labelXcoor, labelYcoor, str(ii),
                           horizontalalignment='center',
                           verticalalignment='center', fontsize=20)
             self.canvas1.draw()

@@ -62,10 +62,12 @@ def load_AFM_data_pickle_short(filename):
     # load from .dat file (short)
     spmfilename = filename[:-3] + 'spm'
     print(spmfilename)
+    if not os.path.isfile(spmfilename):  # search for truncated filename
+        spmfilename = filename[:-5] + '.spm'
     if not os.path.isfile(spmfilename):
         print('No corresponding .spm file was found in the same folder!')
         Data = [0]
-        Data = np.asarray(Data)
+        Data = np.asarray(Data, dtype=object)
         Results = make_Results(np.shape(Data)[0])
         Pars = Pars_gen()
     else:
@@ -77,6 +79,7 @@ def load_AFM_data_pickle_short(filename):
             Pars.dict2class(Pars_dict)
         else:
             Pars = Pars_dict
+        Pars.filedir[0] = spmfilename
         Data = data2['Data']
         Results = data2['Results']
         Bruker_data = Bruker_import(Pars)
@@ -192,7 +195,14 @@ def curve_from_saved_pars(Pars, cData, cResults):
         MaxInd = int(ApprLength-locationcpTing)  # points in Approach indentation
         parf = [E0, alpha_tau, Einf]
         indentationfullTing = Displ - cpTing - DFLc*Pars.InvOLS
-        indentationTing = indentationfullTing[locationcpTing+1:locationcpTing+MaxInd*3]
+        FullLength = len(indentationfullTing)-1
+        indend = np.min([locationcpTing+int(MaxInd*2.15), len(indentationfullTing)-1])
+        for ala in range(ApprLength, FullLength):  # alternative search for indend based on Z value
+            if Displ[ala] < Displ[locationcpTing]:
+                indend = ala
+                break
+        indentationTing = indentationfullTing[locationcpTing+1:indend]
+        indentationTing[indentationTing<0] = 0
         Force_fitT = tingFCPWL3uni(parf, Poisson, Radius, dT, MaxInd, 0, modelting, modelprobe, indentationTing)[0]
         # plt.plot(indentationTing, Force_fitT)
         # plt.plot(indentationfullTing, Forcec)
@@ -203,7 +213,14 @@ def curve_from_saved_pars(Pars, cData, cResults):
             MaxInd = int(ApprLength-locationcpTing) # points in Approach indentation
             parf = [E0BEC, alpha_tauBEC, EinfBEC]
             indentationfullTing = Displ - cpTing - DFLc*Pars.InvOLS
-            indentationTing = indentationfullTing[locationcpTing+1:np.min([locationcpTing+MaxInd*3, len(indentationfullTing)-1])]
+            FullLength = len(indentationfullTing)-1
+            indend = np.min([locationcpTing+int(MaxInd*2.15), len(indentationfullTing)-1])
+            for ala in range(ApprLength, FullLength):  # alternative search for indend based on Z value
+                if Displ[ala] < Displ[locationcpTing]:
+                    indend = ala
+                    break
+            indentationTing = indentationfullTing[locationcpTing+1:indend]
+            indentationTing[indentationTing<0] = 0
             Force_fitTBEC = tingFCPWL3uni(parf, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationTing)[0]
             # plt.plot(indentationTing, Force_fitT)
             # plt.plot(currentcurve3[:, 2]-(cpTing-cpHertz), currentcurve3[:, 5])
@@ -213,13 +230,26 @@ def curve_from_saved_pars(Pars, cData, cResults):
         Force_fitTBEC2 = np.full(np.shape(Forcec), np.nan)
         Force_fitTBEC2[locationcpTing+1:locationcpTing+1+len(Force_fitTBEC)] = Force_fitTBEC
         currentcurve3 = np.c_[currentcurve3, Force_fitTBEC2]
+        # plt.plot(Force_fitTBEC2)
+        # plt.plot(currentcurve3[:, 2], currentcurve3[:, 5])
 
     # currentcurve3 = np.c_[currentcurve3, indentationfull, Forcec, FitApprBEC, Force_fitTBEC, FitAppr, Force_fitT]
 
     warnings.simplefilter("default")
     return currentcurve3
 
-# filename = file_import_dialog_qt5_simplest(import_opt='single', window_title='select files')
-# Pars, Data, Results = load_AFM_data_pickle(filename)
-# Pars, Data, Results = load_AFM_data_pickle_short(filename)
-# Pars, Data, Results = save_AFM_data_pickle_short(filename, Pars, Data, Results)
+
+if __name__ == '__main__':
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    # filename = file_import_dialog_qt5_simplest(import_opt='single', window_title='select files')
+    #  filename = 'D:/MEGAsync/My materials/python/Ting_code/examples/Bruker_forcevolume_cells.dat'
+    # Pars, Data, Results = load_AFM_data_pickle(filename)
+    # Pars, Data, Results = load_AFM_data_pickle_short(filename)
+    # Pars, Data, Results = save_AFM_data_pickle_short(filename, Pars, Data, Results)
+    filename= 'D:/MailCloud/AFM_data/BrukerResolve/cytotoxicity/20211118_Ref52_ACR+NaOCL/control.0_000062.dat'
+    Pars, Data, Results = load_AFM_data_pickle_short(filename)
+    currentcurve3 = curve_from_saved_pars(Pars, Data[0], Results.loc[0, :])
+    plt.plot(currentcurve3[:, 2], currentcurve3[:, 3])
+    plt.plot(currentcurve3[:, 2], currentcurve3[:, 5])

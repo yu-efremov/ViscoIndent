@@ -63,7 +63,7 @@ class App(QMainWindow):
         # print(Pars.curve_range)
         # print(Pars)
 
-    def button1(self):
+    def button_launch_click(self):
         first_curve = int(self.first_curve.text())
         last_curve = int(self.last_curve.text())
         self.Pars.curve_range = np.array([first_curve, last_curve])
@@ -71,7 +71,7 @@ class App(QMainWindow):
             self.Data = np.insert(self.Data, 2, np.zeros((self.Data.shape[0])), axis=1)
         for kk in range(self.Pars.curve_range[0], self.Pars.curve_range[1]+1):
             Results_temp, self.Data[kk][0:2], DFL_corrs = tingsprocessingd1(self.Pars, self.Data[kk][0:2])
-            self.Data[kk][2] = DFL_corrs
+            self.Data[kk][2] = DFL_corrs  # TODO 2 is dT, move to 3?
             self.Results.loc[kk, :] = Results_temp.loc[0, :]
 
     def button_save_click(self):
@@ -80,7 +80,10 @@ class App(QMainWindow):
         if self.Pars.save_short == 0:
             filename = QFileDialog.getSaveFileName(self, 'Save File')[0]
             if os.path.isfile(filename):
-                self.Rewrite_q = QMessageBox.question(QMessageBox(), "saved file was found", 'saved file was found. rewrite?', QMessageBox.Yes | QMessageBox.No)
+                self.Rewrite_q = QMessageBox.question(QMessageBox(),
+                                "saved file was found",
+                                'saved file was found. rewrite?',
+                                QMessageBox.Yes | QMessageBox.No)
                 if self.Rewrite_q == QMessageBox.Yes:
                     os.remove(filename)  # delete the file
             else:
@@ -97,9 +100,18 @@ class App(QMainWindow):
         elif self.Pars.save_short == 1:
             filename = self.Pars.filedir[0][:-3] + 'dat'
             if os.path.isfile(filename):
-                self.Rewrite_q = QMessageBox.question(QMessageBox(), "saved file was found", 'saved file was found. rewrite?', QMessageBox.Yes | QMessageBox.No)
+                self.Rewrite_q = QMessageBox.question(QMessageBox(),
+                                "saved file was found",
+                                'Saved file was found. Rewrite? (Retry will make a new file)',
+                                QMessageBox.Yes | QMessageBox.Retry | QMessageBox.No)
                 if self.Rewrite_q == QMessageBox.Yes:
                     os.remove(filename)  # delete the file
+                elif self.Rewrite_q == QMessageBox.Retry:
+                    for ij in range(1, 9):
+                        filename = self.Pars.filedir[0][:-4] + str(ij) + '.dat'
+                        if not os.path.isfile(filename):
+                            self.Rewrite_q = QMessageBox.Yes
+                            break
             else:
                 self.Rewrite_q = QMessageBox.Yes
             if self.Rewrite_q == QMessageBox.Yes:
@@ -160,26 +172,40 @@ class App(QMainWindow):
     def initUI(self):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
-        self.supress_ROIquestion = 0
+        self.supress_ROIquestion = 2
         if 'Data' in globals():
             print('Data were found in workspace')
             global Pars, Results, Data
-            if 'Results' not in globals():
-                self.Results = make_Results(np.shape(Data)[0])
-            else:
-                self.Results = Results
             self.Data = Data
             self.Pars = Pars
+            if 'Results' not in globals():
+                self.Results = make_Results(np.shape(Data)[0])
+                self.Results.Pixel = self.Data[:, 0]  # remove nans
+            else:
+                self.Results = Results
         self.selection_win1.initUI()
 
     def initUI2(self):
-        if self.supress_ROIquestion == 0:
+        # load config
+        self.supress_ROIquestion = config['supress_ROIquestion']
+        self.Pars.HeightfromZ = config['HeightfromZ']
+        self.Pars.ROIPars.ROImode = config['ROImode']
+        self.Pars.ROIPars.h_level = config['h_level']
+        
+        if self.supress_ROIquestion in [0, 2]:
+            self.curveviewer()  # help against shutdown
             self.MAPdialog.initUI()
         else:
             self.curveviewer()
 
     def regionselection(self):
-        self.ROIproc = QMessageBox.question(QMessageBox(), "select ROIs?", 'select ROIs?', QMessageBox.Yes | QMessageBox.No)
+        if self.supress_ROIquestion==0:
+            self.ROIproc = QMessageBox.question(QMessageBox(), "select ROIs?", 'select ROIs?', QMessageBox.Yes | QMessageBox.No)
+        elif self.supress_ROIquestion==2:
+            self.ROIproc = QMessageBox.Yes
+        elif self.supress_ROIquestion==1:
+            self.ROIproc = QMessageBox.No
+            
         if self.ROIproc == QMessageBox.Yes:
             self.ROIdialog.initUI()
         else:
@@ -222,7 +248,7 @@ class App(QMainWindow):
 
         button_launch = QPushButton('Start processing', self)
         button_launch.setToolTip('Start the processing for selected data and model')
-        button_launch.clicked.connect(self.button1)
+        button_launch.clicked.connect(self.button_launch_click)
 
         button_maps = QPushButton('Show maps', self)
         button_maps.setToolTip('Show data maps')
@@ -337,6 +363,7 @@ class PlotCanvas(FigureCanvas):
 
         ax = self.axes
         ax.clear()
+        ax.set_title(str(kk))
         if Pars.graph == 'raw':
             ax.plot(rawZ, rawDFL)
         elif Pars.graph == 'elastic' and np.shape(currentcurve3)[1] > 4:
@@ -371,7 +398,17 @@ class TableModel(QtCore.QAbstractTableModel):
 
             if isinstance(value, str):
                 # Render strings with quotes
-                return '%s' % value
+                if value.replace('.', '', 1).isdigit():
+                    value_float = float(value)
+                    if int(value_float) == value_float:
+                        pass
+                    else:
+                        # value_float = np.round(value_float, 3)
+                        value = f"{value_float:.3f}"
+                        # value = str(value_float)
+                        # print(value)
+                        # value = 1
+                # return '%s' % value
 
             return value
 
@@ -381,7 +418,7 @@ class TableModel(QtCore.QAbstractTableModel):
         return QtCore.QVariant()
 
     def setData(self, index, value, role):
-        self._data[index.row()][index.column()] = value  # or float(value)
+        self._data[index.row()][index.column()] = np.round(value, 1)  # or value or float(value)
         return True
 
     def flags(self, index):

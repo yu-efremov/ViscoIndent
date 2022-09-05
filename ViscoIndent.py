@@ -10,8 +10,9 @@ import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QSizePolicy,\
                             QVBoxLayout, QHBoxLayout, QLabel,\
-                            QPushButton, QComboBox
-from PyQt5.QtCore import Qt, QPersistentModelIndex, QModelIndex
+                            QPushButton, QComboBox, QDoubleSpinBox, \
+                            QItemEditorFactory, QStyledItemDelegate
+from PyQt5.QtCore import Qt, QPersistentModelIndex, QModelIndex, QVariant
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -151,15 +152,16 @@ class App(QMainWindow):
         Pars['viscomodel'] = 'sPLR'
         # Pars['indpars'] = np.array([1, 50, 50, 1000, 1]
         # Pars['Vpars'] = np.array([1000, 0.8, 0, 20])
-        Pars['noise'] = 0  # % noise level from median force
-        Pars['hydrodrag'] = 0
+        Pars['noise'] = 0.0 # % noise level from median force
+        Pars['hydrodrag'] = 0.000  # [nN*s/nm] coefficient of viscous drag
 
-        IndPars = {}  # [yes/no; depth; speed; numpoimts; ramp/sin];
+        IndPars = {}  # [yes/no; depth; speed; numpoimts; ramp/sin; dwell_time];
         IndPars['define_indentation'] = 1  # Pars['indpars'][0]
-        IndPars['depth'] = 50  # Pars['indpars'][1]
-        IndPars['speed'] = 50  # Pars['indpars'][2]
+        IndPars['depth (nm)'] = 50  # Pars['indpars'][1]
+        IndPars['speed (nm/s)'] = 50  # Pars['indpars'][2]
         IndPars['number of pts'] = 1000  # Pars['indpars'][3]
         IndPars['tri(0) or sin(1)'] = 0  # Pars['indpars'][4]
+        IndPars['dwell_time (s)'] = 0.0  # Pars['indpars'][5]
 
         ViscoPars = {}
         ViscoPars['visco-par1'] = float(1000)  # Pars['Vpars'][0]
@@ -177,8 +179,12 @@ class App(QMainWindow):
         Pars['indpars'] = np.squeeze(list(IndPars.values()))
         Pars['Vpars'] = np.squeeze(list(ViscoPars.values()))
 
+        styledItemDelegate=QStyledItemDelegate()
+        styledItemDelegate.setItemEditorFactory(ItemEditorFactory())
+
         self.table = QtWidgets.QTableView()
         self.model = TableModel(listPars)
+        self.table.setItemDelegate(styledItemDelegate)
         self.table.setModel(self.model)
 
         indx = self.table.model().index(0, 1)
@@ -200,15 +206,17 @@ class App(QMainWindow):
 
         self.table2 = QtWidgets.QTableView()
         self.model2 = TableModel(listInd)
+        self.table2.setItemDelegate(styledItemDelegate)
         self.table2.setModel(self.model2)
         self.table2.setRowHidden(0, True)
 
         self.table3 = QtWidgets.QTableView()
         self.model3 = TableModel(listVisco)
+        self.table3.setItemDelegate(styledItemDelegate)
         self.table3.setModel(self.model3)
 
         self.graphT = QComboBox()
-        self.graphT.addItems(['Force versus Indentation', 'Force versus Time'])
+        self.graphT.addItems(['Force versus Indentation', 'Force versus Time', 'Force versus Displacement'])
         self.graphT.currentIndexChanged.connect(self.button1)
 
         self.labelViscoHelp = QLabel(str(self.cbDel2.currentText()) + ' pars: E1, alpha', self)
@@ -291,13 +299,18 @@ class PlotCanvas(FigureCanvas):
         ax.clear()
         if Pars['graph'] == 'Force versus Indentation':
             ax.plot(ind, force, 'r-')
-            ax.set_title('Force vs indentation')
+            ax.set_title('Force versus Indentation')
             ax.set_xlabel('Indentation, nm')
             ax.set_ylabel('Force, nN')
         elif Pars['graph'] == 'Force versus Time':
             ax.plot(time, force, 'r-')
             ax.set_title('Force vs Time')
             ax.set_xlabel('Time, s')
+            ax.set_ylabel('Force, nN')
+        elif Pars['graph'] == 'Force versus Displacement':
+            ax.plot(indentationfullL, forceL, 'r-')
+            ax.set_title('Force versus Displacement')
+            ax.set_xlabel('Displacement, nm')
             ax.set_ylabel('Force, nN')
         self.draw()
 
@@ -340,6 +353,19 @@ class TableModel(QtCore.QAbstractTableModel):
 
     def columnCount(self, index):
         return len(self._data[0])
+
+class ItemEditorFactory(QItemEditorFactory):  # http://doc.qt.io/qt-5/qstyleditemdelegate.html#subclassing-qstyleditemdelegate    It is possible for a custom delegate to provide editors without the use of an editor item factory. In this case, the following virtual functions must be reimplemented:
+    def __init__(self):
+        super().__init__()
+
+    def createEditor(self, userType, parent):
+        if userType == QVariant.Double:
+            doubleSpinBox = QDoubleSpinBox(parent)
+            doubleSpinBox.setDecimals(6)
+            doubleSpinBox.setMaximum(1000)  # The default maximum value is 99.99
+            return doubleSpinBox
+        else:
+            return super().createEditor(userType, parent)
 
 
 if __name__ == '__main__':

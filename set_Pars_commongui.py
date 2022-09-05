@@ -88,7 +88,7 @@ class set_Pars(QMainWindow):
 
         self.labelSample = QLabel('Sample')
         self.label_models = QLabel('Model')
-        self.vmodels = ['elastic', 'SLS', 'sPLR', 'sPLReta']
+        self.vmodels = ['elastic', 'SLS', 'sPLR', 'sPLReta', 'sPLRetatest']
         self.cb_models = QComboBox()
         self.cb_models.addItems(self.vmodels)
         # self.cb_models.currentIndexChanged.connect(self.update_Pars)

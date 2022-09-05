@@ -4,20 +4,30 @@
 """
 
 import sys
+import os
+import glob
+import inspect
 from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, \
     QVBoxLayout, QHBoxLayout, QLabel,\
-    QPushButton, QFileDialog
+    QPushButton, QFileDialog, QListView, QAbstractItemView, QTreeView
 
 import numpy as np
 
 from Pars_class import Pars_gen
 from import_AFM_data import Bruker_import
 from import_ARDF import ARDF_import
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir+ '/projects/microtester')
+sys.path.insert(0, parentdir+ '/projects/biomomentum')
+from Biomomentum_import_FC import import_specific_BM
+from import_Microtester import import_Microtester_toVI_multi
 from make_Results import make_Results
 from utils_ViscoIndent import load_AFM_data_pickle, load_AFM_data_pickle_short
 
 
 class selection_win1(QMainWindow):
+
 
     def __init__(self, parent=None):
         super(selection_win1, self).__init__(parent)
@@ -25,15 +35,22 @@ class selection_win1(QMainWindow):
         if not hasattr(self.selection_win1_gui, 'commongui'):
             self.initUI()
 
+
     def initUI(self):
 
-        self.btn_loadSPM = QPushButton("Load .spm", self)
+        self.btn_loadSPM = QPushButton("Load .spm (Bruker)", self)
         self.btn_loadSPM.clicked.connect(self.load_spm)
-        
-        self.btn_loadARDF = QPushButton("Load .ARDF", self)
+
+        self.btn_loadARDF = QPushButton("Load .ARDF (Asylum)", self)
         self.btn_loadARDF.clicked.connect(self.load_ardf)
 
-        self.btn_loadDAT = QPushButton("Load .dat", self)
+        self.btn_loadBiomomentumFC = QPushButton("Load Biomomentum data", self)
+        self.btn_loadBiomomentumFC.clicked.connect(self.load_biomomentum)
+
+        self.btn_loadMicrotesterFC = QPushButton("Load Microtester data", self)
+        self.btn_loadMicrotesterFC.clicked.connect(self.load_microtester)
+
+        self.btn_loadDAT = QPushButton("Load .dat (processed file)", self)
         self.btn_loadDAT.clicked.connect(self.load_dat)
 
         self.btn_loadWorkspace = QPushButton("Load from workspace", self)
@@ -41,10 +58,14 @@ class selection_win1(QMainWindow):
 
         self.btn_Exit = QPushButton("Exit", self)
         self.btn_Exit.clicked.connect(self.btn_Exit_pressed)
-
+        self.lookfolder = "examples/"
         if 'Data' in globals() or hasattr(self.selection_win1_gui, 'Data'):
             print('Data were found in workspace')
             strData = 'Data found in workspace. Reuse or open new?'
+            try:
+                self.lookfolder = os.path.dirname(self.selection_win1_gui.Pars.filedir[0])
+            except:
+                pass
             # choice = QMessageBox.question(msg_box, "Choose Data", strData, QMessageBox.Yes | QMessageBox.Open | QMessageBox.Cancel)
         else:
             print('no Data were found in workspace')
@@ -57,13 +78,19 @@ class selection_win1(QMainWindow):
         self.setWindowTitle('Select data to open')
         layoutA = QHBoxLayout()
         layoutA.addWidget(self.btn_loadSPM)
-        layoutA.addWidget(self.btn_loadDAT)
         layoutA.addWidget(self.btn_loadARDF)
-        layoutA.addWidget(self.btn_loadWorkspace)
-        layoutA.addWidget(self.btn_Exit)
+        layoutA.addWidget(self.btn_loadBiomomentumFC)
+        layoutB = QHBoxLayout()
+        layoutA.addWidget(self.btn_loadMicrotesterFC)
+        layoutB.addWidget(self.btn_loadDAT)
+        layoutB.addWidget(self.btn_loadWorkspace)
+        layoutC = QHBoxLayout()
+        layoutC.addWidget(self.btn_Exit)
         layoutM = QVBoxLayout()
         layoutM.addWidget(self.label_textabove)
         layoutM.addLayout(layoutA)
+        layoutM.addLayout(layoutB)
+        layoutM.addLayout(layoutC)
 
         widget = QWidget()
         widget.setLayout(layoutM)
@@ -71,106 +98,192 @@ class selection_win1(QMainWindow):
         self.show()
         self.activateWindow()
 
+
     def load_spm(self):
         options = QFileDialog.Options()
-        self.fileName, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "examples/", "All Files (*);;Python Files (*.py)", options=options)
-        filedir0 = self.fileName
-        self.supress_ROIquestion = 0
+        self.fileName, _ = QFileDialog.getOpenFileName(self, "Select Bruker file", self.lookfolder, "Bruker files (*.spm)", options=options)
+        if self.fileName != "":
+            filedir0 = self.fileName
+            self.supress_ROIquestion = 0
 
-        # filedir0 = 'D:/MailCloud/AFM_data/BrukerResolve/MISIS/20190928_PC3_MMAE_ACALold2/area1-01.0_00000.spm'
-        # filedir0 = 'examples/Bruker_forcevolume_cells.spm'
-        fnameshort = filedir0.split("/")
-        fnameshort = fnameshort[-1]
-        Pars = Pars_gen()
-        Pars.probe_shape = 'sphere'
-        Pars.probe_dimension = 5000
-        Pars.Poisson = 0.5         # Poisson's ratio of the sample
-        Pars.dT = 1e-3                 # Sampling time
-        Pars.height = 0
-        Pars.HeightfromZ = 0
-        Pars.viscomodel = 'elastic'
-        Pars.hydro.corr = 1
-        Pars.hydro.corr_type = 2
-        Pars.hydro.speedcoef = 4.0e-7
-        Pars.cp_adjust = 1
+            fnameshort = filedir0.split("/")
+            fnameshort = fnameshort[-1]
+            Pars = Pars_gen()
+            Pars.probe_shape = 'sphere'
+            Pars.probe_dimension = 5000
+            Pars.Poisson = 0.5         # Poisson's ratio of the sample
+            Pars.dT = 1e-3                 # Sampling time
+            Pars.height = 0
+            Pars.HeightfromZ = 0
+            Pars.viscomodel = 'elastic'
+            Pars.hydro.corr = 1
+            Pars.hydro.corr_type = 2
+            Pars.hydro.speedcoef = 4.0e-7
+            Pars.cp_adjust = 1
 
-        Pars.filedir = []
-        Pars.filedir.append(filedir0)
-        Pars.fnameshort = []
-        Pars.fnameshort.append(fnameshort)
-        self.Data = {}
-        Bruker_data = Bruker_import(Pars)
-        print('data loaded from file')
-        self.Data = Bruker_data.Data
-        self.Pars = Bruker_data.Pars
-        self.Results = make_Results(np.shape(self.Data)[0])
-        print(self.Data[0])
-        self.Results.Pixel = self.Data[:, 0]  # remove nans
-        if hasattr(self.selection_win1_gui, 'commongui'):
-            self.selection_win1_gui.Pars = self.Pars
-            self.selection_win1_gui.Data = self.Data
-            self.selection_win1_gui.Results = self.Results
-            self.close()
-            self.selection_win1_gui.initUI2()
-            
+            Pars.filedir = []
+            Pars.filedir.append(filedir0)
+            Pars.fnameshort = []
+            Pars.fnameshort.append(fnameshort)
+            self.Data = {}
+            Bruker_data = Bruker_import(Pars)
+            print('data loaded from file')
+            self.Data = Bruker_data.Data
+            self.Pars = Bruker_data.Pars
+            self.Results = make_Results(np.shape(self.Data)[0])
+            print(self.Data[0])
+            self.Results.Pixel = self.Data[:, 0]  # remove nans
+            if hasattr(self.selection_win1_gui, 'commongui'):
+                self.selection_win1_gui.Pars = self.Pars
+                self.selection_win1_gui.Data = self.Data
+                self.selection_win1_gui.Results = self.Results
+                self.close()
+                self.selection_win1_gui.initUI2()
+
+
     def load_ardf(self):
         options = QFileDialog.Options()
-        self.fileName, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "examples/", "All Files (*);;Python Files (*.py)", options=options)
-        filedir0 = self.fileName
-        self.supress_ROIquestion = 0
+        self.fileName, _ = QFileDialog.getOpenFileName(self, "Select Asylum file", self.lookfolder, "AR Files (*.ardf)", options=options)
+        if self.fileName != "":
+            filedir0 = self.fileName
+            self.supress_ROIquestion = 0
 
-        # filedir0 = 'D:/MailCloud/AFM_data/BrukerResolve/MISIS/20190928_PC3_MMAE_ACALold2/area1-01.0_00000.spm'
-        # filedir0 = 'examples/Bruker_forcevolume_cells.spm'
-        fnameshort = filedir0.split("/")
-        fnameshort = fnameshort[-1]
-        Pars = Pars_gen()
-        Pars.probe_shape = 'sphere'
-        Pars.probe_dimension = 5000
-        Pars.Poisson = 0.5         # Poisson's ratio of the sample
-        Pars.dT = 1e-3                 # Sampling time
-        Pars.height = 0
-        Pars.HeightfromZ = 0
-        Pars.viscomodel = 'elastic'
-        Pars.hydro.corr = 1
-        Pars.hydro.corr_type = 2
-        Pars.hydro.speedcoef = 4.0e-7
-        Pars.cp_adjust = 1
+            fnameshort = filedir0.split("/")
+            fnameshort = fnameshort[-1]
+            Pars = Pars_gen()
+            Pars.probe_shape = 'sphere'
+            Pars.probe_dimension = 5000
+            Pars.Poisson = 0.5         # Poisson's ratio of the sample
+            Pars.dT = 1e-3             # Sampling time
+            Pars.height = 0
+            Pars.HeightfromZ = 0
+            Pars.viscomodel = 'elastic'
+            Pars.hydro.corr = 1
+            Pars.hydro.corr_type = 2
+            Pars.hydro.speedcoef = 4.0e-7
+            Pars.cp_adjust = 1
 
-        Pars.filedir = []
-        Pars.filedir.append(filedir0)
-        Pars.fnameshort = []
-        Pars.fnameshort.append(fnameshort)
-        self.Data = {}
-        [Pars, Data] = ARDF_import(Pars)
-        print('data loaded from ARDF file')
-        self.Data = Data
-        self.Pars = Pars
-        self.Results = make_Results(np.shape(self.Data)[0])
-        print(self.Data[0])
-        self.Results.Pixel = self.Data[:, 0]  # remove nans
-        if hasattr(self.selection_win1_gui, 'commongui'):
-            self.selection_win1_gui.Pars = self.Pars
-            self.selection_win1_gui.Data = self.Data
-            self.selection_win1_gui.Results = self.Results
-            self.close()
-            self.selection_win1_gui.initUI2()            
+            Pars.filedir = []
+            Pars.filedir.append(filedir0)
+            Pars.fnameshort = []
+            Pars.fnameshort.append(fnameshort)
+            self.Data = {}
+            [Pars, Data] = ARDF_import(Pars)
+            print('data loaded from ARDF file')
+            self.Data = Data
+            self.Pars = Pars
+            self.Results = make_Results(np.shape(self.Data)[0])
+            print(self.Data[0])
+            self.Results.Pixel = self.Data[:, 0]  # remove nans
+            if hasattr(self.selection_win1_gui, 'commongui'):
+                self.selection_win1_gui.Pars = self.Pars
+                self.selection_win1_gui.Data = self.Data
+                self.selection_win1_gui.Results = self.Results
+                self.close()
+                self.selection_win1_gui.initUI2()
+
+
+    def load_biomomentum(self):
+        options = QFileDialog.Options()
+        self.fileName, _ = QFileDialog.getOpenFileName(self, "Select Biomomentum file", self.lookfolder, "All Files (*.txt);;Python Files (*.py)", options=options)
+        if self.fileName != "":
+            filedir0 = self.fileName
+            self.supress_ROIquestion = 1
+            fnameshort = filedir0.split("/")
+            fnameshort = fnameshort[-1]
+            Pars = Pars_gen()
+            Pars.probe_shape = 'sphere'
+            Pars.probe_dimension = 1000
+            Pars.Poisson = 0.5         # Poisson's ratio of the sample
+            Pars.dT = 1e-3                 # Sampling time
+            Pars.height = 0
+            Pars.HeightfromZ = 1
+            Pars.viscomodel = 'elastic'
+            Pars.hydro.corr = 0
+            Pars.hydro.corr_type = 0
+            Pars.hydro.speedcoef = 0
+            Pars.cp_adjust = 1
+
+            Pars.filedir = []
+            Pars.filedir.append(filedir0)
+            Pars.fnameshort = []
+            Pars.fnameshort.append(fnameshort)
+            self.Data = {}
+            num_regs = 0
+            Pars, Data, Results = import_specific_BM(filedir0, num_regs)
+            print('Biomomenum data loaded')
+            self.Data = Data
+            self.Pars = Pars
+            self.Results = Results
+            # self.Results = make_Results(np.shape(self.Data)[0])
+            print(self.Data[0])
+            self.Results.Pixel = self.Data[:, 0]  # remove nans
+            if hasattr(self.selection_win1_gui, 'commongui'):
+                self.selection_win1_gui.Pars = self.Pars
+                self.selection_win1_gui.Data = self.Data
+                self.selection_win1_gui.Results = self.Results
+                self.selection_win1_gui.supress_ROIquestion = self.supress_ROIquestion
+                self.close()
+                self.selection_win1_gui.initUI2()
+
+
+    def load_microtester(self):
+        start_folder = 'D:/MailCloud/Microsquisher'
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.DirectoryOnly)
+        file_dialog.setOption(QFileDialog.DontUseNativeDialog, True)
+        file_dialog.setDirectory(start_folder)
+        file_view = file_dialog.findChild(QListView, 'listView')
+
+        # to make it possible to select multiple directories:
+        if file_view:
+            file_view.setSelectionMode(QAbstractItemView.MultiSelection)
+        f_tree_view = file_dialog.findChild(QTreeView)
+        if f_tree_view:
+            f_tree_view.setSelectionMode(QAbstractItemView.MultiSelection)
+
+        if file_dialog.exec():
+            pathnames = file_dialog.selectedFiles()
+
+        if 'pathnames' in locals():
+            fileNames = []
+            for pathnamec in pathnames:
+                tfiles = glob.glob(pathnamec+"/"+"*.csv")
+                if len(tfiles)>0:
+                    fileNames.append(tfiles[0])
+    
+            Pars, Data, Results = import_Microtester_toVI_multi(fileNames)
+            print('Microtester data loaded')
+            self.Data = Data
+            self.Pars = Pars
+            self.Results = Results
+            self.Results.Pixel = self.Data[:, 0]  # remove nans
+            self.supress_ROIquestion = 1
+            if hasattr(self.selection_win1_gui, 'commongui'):
+                self.selection_win1_gui.Pars = self.Pars
+                self.selection_win1_gui.Data = self.Data
+                self.selection_win1_gui.Results = self.Results
+                self.selection_win1_gui.supress_ROIquestion = self.supress_ROIquestion
+                self.close()
+                self.selection_win1_gui.initUI2()
+
 
     def load_dat(self):
         print('load dat')
         options = QFileDialog.Options()
-        self.fileName, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "examples/", "All Files (*.dat);;Python Files (*.py)", options=options)
+        self.fileName, _ = QFileDialog.getOpenFileName(self, "Selecd .dat file", self.lookfolder, "Data Files (*.dat);;Python Files (*.py)", options=options)
 
-        # self.Pars, self.Data, self.Results = load_AFM_data_pickle(self.fileName)
-
-        self.Pars, self.Data, self.Results = load_AFM_data_pickle_short(self.fileName)
-        # self.supress_ROIquestion = 1
-        if hasattr(self.selection_win1_gui, 'commongui'):
-            self.selection_win1_gui.Pars = self.Pars
-            self.selection_win1_gui.Data = self.Data
-            self.selection_win1_gui.Results = self.Results
-            self.selection_win1_gui.supress_ROIquestion = 1
-            self.close()
-            self.selection_win1_gui.initUI2()
+        if self.fileName != "":
+            # self.Pars, self.Data, self.Results = load_AFM_data_pickle(self.fileName)
+            self.Pars, self.Data, self.Results = load_AFM_data_pickle_short(self.fileName)
+            # self.supress_ROIquestion = 1
+            if hasattr(self.selection_win1_gui, 'commongui'):
+                self.selection_win1_gui.Pars = self.Pars
+                self.selection_win1_gui.Data = self.Data
+                self.selection_win1_gui.Results = self.Results
+                self.selection_win1_gui.supress_ROIquestion = 1
+                self.close()
+                self.selection_win1_gui.initUI2()
 
     def load_workspace(self):
         self.supress_ROIquestion = 1
@@ -193,7 +306,11 @@ class selection_win1(QMainWindow):
             self.selection_win1_gui.initUI2()
 
     def btn_Exit_pressed(self):
-        self.close()
+        if hasattr(self.selection_win1_gui, 'commongui'):
+            self.selection_win1_gui.close()
+            self.close()
+        else:
+            self.close()
 
     def closeEvent(self, event):
 
@@ -214,9 +331,12 @@ class selection_win1(QMainWindow):
                 self.selection_win1_gui.supress_ROIquestion = 1
             # self.selection_win1_gui.curveviewer()
             # print('module_PLpart_finished')
-            # self.close()
-            # self.selection_win1_gui.close()  # initUI2
-            print('module_PLpart_finished')
+            self.close()
+            # if 'SPYDER_ENCODING' in os.environ.keys():
+            #     self.selection_win1_gui.close()  # initUI2
+            # else:
+            #     self.close()
+            print('module_DataLoad_finished')
 
 
 if __name__ == '__main__':

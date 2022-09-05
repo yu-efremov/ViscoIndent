@@ -54,10 +54,10 @@ def ting_numerical(par, Poisson, Radius, dT, MaxInd, Height, modelting, modelpro
     # indentation history
     ind2speed = np.diff(indentationfull**power)/dT
     ind2speed = np.append(ind2speed, ind2speed[-1])
-    # ind2speed = smoothM(ind2speed, 5)
+    ind2speed = smoothM(ind2speed, 5)
     indspeed = np.diff(indentationfull)/dT
     indspeed = np.append(indspeed, indspeed[-1])
-    # indspeed = smoothM(indspeed, 5)
+    indspeed = smoothM(indspeed, 5)
     # plt.plot(indspeed)
 
     ForceR = np.zeros(len(indentationfull))  # Lee_Radok force prediction

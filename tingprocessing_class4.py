@@ -114,6 +114,8 @@ def tingsprocessingd1(Pars, curve_data):
     Results = make_Results(0)
     kk = 0
     # contact_points = [0, 0, 0]
+    # test = 1
+    # if test == 1:
     try:
         # kk = 0
         Results = make_Results(1)
@@ -126,7 +128,8 @@ def tingsprocessingd1(Pars, curve_data):
         Poisson = Pars.Poisson              # Poisson's ratio of the sample
         dT = Pars.dT                        # Sampling time
         try:
-            dT = curve_data[2]  # dT in Data array position
+            a = b  # no dT in Data TODO
+            dT = curve_data[3]  # dT in Data array position
         except:
             dT = Pars.dT
         modelting = Pars.viscomodel         # 1 - PLR, 2 - SLS, 3 - sPLR, 4 - elastic only
@@ -147,11 +150,11 @@ def tingsprocessingd1(Pars, curve_data):
         except:
             speedcoefmT = 0
         try:
-            DepthStart = Pars.depth_start
-            DepthEnd = Pars.depth_end
+            DepthStart_percent = Pars.depth_start
+            DepthEnd_percent = Pars.depth_end
         except:
-            DepthStart = 7
-            DepthEnd = 95
+            DepthStart_percent = 7
+            DepthEnd_percent = 95
         try:
             Fixedpars = Pars.fixed_values
         except:
@@ -160,6 +163,10 @@ def tingsprocessingd1(Pars, curve_data):
             Downsampling = Pars.downsampling
         except:
             Downsampling = 0
+        try:
+            right_border_cp1 = Pars.right_border_cp1
+        except:   
+            right_border_cp1 = 0.6
 
         if HeightfromZ == 1:
             SurfZ = np.reshape(Pars.PL, Pars.PL.size)[kk]
@@ -176,7 +183,7 @@ def tingsprocessingd1(Pars, curve_data):
             if modelprobe == 'cone':
                 K1 = 2/pi()*tan(Radius*pi/180)
             elif modelprobe == 'pyramid':
-                K1 = 1.406/2*tan(Radius*pi/180)
+                K1 = 1.4906/2*tan(Radius*pi/180)  # Bilodeau, 1992
         elif modelprobe == 'cylinder':  # cylinder
             K1 = 2*Radius  # before integral no speed
             power = 1
@@ -228,10 +235,10 @@ def tingsprocessingd1(Pars, curve_data):
 
         if currentcurve[0, 0] > currentcurve[30, 0]:
             Displ = -currentcurve[:, 0]+currentcurve[0, 0]
-            CurveDir = -1  # decreasing curve
+            # CurveDir = -1  # decreasing curve
         else:  # default case
             Displ = currentcurve[:, 0] - currentcurve[0, 0]
-            CurveDir = 1  # increasing curve
+            # CurveDir = 1  # increasing curve
 
         StartZ = currentcurve[0, 0]
         SurfZ = StartZ + SurfZ
@@ -248,15 +255,14 @@ def tingsprocessingd1(Pars, curve_data):
         # define function for fitting
         # ForceCurvePLinc(x, a, b, c, x0, y0)
         ForceCurvePLincP = lambda x, a, b, x0, y0: ForceCurvePLinc(x, a, b, power, x0, y0)
-        fStartPoint = [1e-4,  1e-7,  50,  0]  # a,b,x0,y0
+        fStartPoint = [1e-4,  1e-7,  60,  0]  # a,b,x0,y0
         bounds0 = (0, -100, 0, -10), (100000, 20, 97, 97)
         c, cov = curve_fit(ForceCurvePLincP, DisplApprNorm, DFLAppr0Norm, fStartPoint, bounds=bounds0)
         # c,cov = curve_fit(ForceCurvePLincP,DisplAppr,DFLAppr0, [1e-4,  1e-7,  1000,  0])
         # yp = ForceCurvePLincP(DisplAppr,c[0],c[1],c[2],c[3])
         # plt.plot(DisplAppr, DFLAppr0); plt.plot(DisplAppr, yp)
-        yp=ForceCurvePLincP(DisplApprNorm, c[0], c[1], c[2], c[3])
-        # plt.plot(DisplApprNorm, DFLAppr0Norm)
-        # plt.plot(DisplApprNorm, yp)
+        # yp = ForceCurvePLincP(DisplApprNorm, c[0], c[1], c[2], c[3])
+        # plt.plot(DisplApprNorm, DFLAppr0Norm);  plt.plot(DisplApprNorm, yp)
         # print('R^2: '+str(r2_score(DFLAppr0,yp)))
         contactpoint0 = c[2]/100*norm2my(DisplAppr)[1]
         # find cp0 location
@@ -308,7 +314,7 @@ def tingsprocessingd1(Pars, curve_data):
 
         # second fit for the contact point estimation
         left_border_point = math.floor(locationcp0*0.6)
-        right_border_point = locationcp0+math.floor((ApprLength-locationcp0)*0.6)
+        right_border_point = locationcp0+math.floor((ApprLength-locationcp0)*right_border_cp1)
         AppX1 = DisplAppr[left_border_point:right_border_point]
         AppY1 = DFLAppr[left_border_point:right_border_point]
         # plt.plot(AppX1,AppY1)
@@ -327,13 +333,13 @@ def tingsprocessingd1(Pars, curve_data):
         # plt.plot(Displ, Forcefull1)
         # plt.plot(IndentationApproach, ForceApproach)
 
-        DepthStart = DepthStart*0.01*max(IndentationApproach)  # first 7% of ind ignored
+        DepthStart = DepthStart_percent*0.01*max(IndentationApproach)  # first 7% of ind ignored
         if DepthStart > 0:
             depth_start = locate_position(DepthStart, IndentationApproach)
             # TODO add safety check
         else:
             depth_start = 0
-        DepthEnd = DepthEnd*0.01*max(IndentationApproach)
+        DepthEnd = DepthEnd_percent*0.01*max(IndentationApproach)
         if DepthEnd > 0:
             depth_end = locate_position(DepthEnd, IndentationApproach)
             # TODO add safety check
@@ -342,6 +348,7 @@ def tingsprocessingd1(Pars, curve_data):
 
         IndAppSel = IndentationApproach[depth_start:depth_end]
         IndFSel = ForceApproach[depth_start:depth_end]
+        # plt.plot(IndAppSel, IndFSel)
         # IndAppSelNorm = IndAppSel./max(IndAppSel)
         # IndFSelNorm = IndFSel./max(IndFSelNorm)
         # ============== elastic model fit, with or without BEC
@@ -353,8 +360,8 @@ def tingsprocessingd1(Pars, curve_data):
         warnings.simplefilter("ignore")
         # fHertz, fHcov = curve_fit(funHertzfit, IndAppSel, IndFSel, fHStartPoint, bounds=fHbounds, check_finite=False)
         fHertz, fHcov = curve_fit(funHertzfit, IndAppSel, IndFSel, fHStartPoint, bounds=fHbounds)
-        fHcurve = funHertzfit(IndentationApproach, fHertz[0], fHertz[1]) # for plot
         warnings.simplefilter("default")
+        # fHcurve = funHertzfit(IndentationApproach, fHertz[0], fHertz[1]) # for plot
         # plt.figure()
         # plt.plot(IndentationApproach,ForceApproach,IndentationApproach,fHcurve)
 
@@ -381,8 +388,8 @@ def tingsprocessingd1(Pars, curve_data):
             # fHertzBEC, fHBECcov = curve_fit(funHertzfitBEC, IndAppSel, IndFSel,
             #                     fHStartPoint, bounds=fHbounds)  # check_finite = False
             fHertzBEC, fHBECcov = curve_fit(funHertzfitBEC, IndAppSel, IndFSel, fHStartPoint, bounds=fHbounds)
-            fHBECcurve = funHertzfitBEC(IndentationApproach, fHertzBEC[0], fHertzBEC[1])  # for plot
             warnings.simplefilter("default")
+            # fHBECcurve = funHertzfitBEC(IndentationApproach, fHertzBEC[0], fHertzBEC[1])  # for plot
             # plt.plot(IndentationApproach, ForceApproach, IndentationApproach, fHBECcurve)
             EHertzBEC = fHertzBEC[0]
             contactHertzBEC = contactpoint01+fHertzBEC[1]
@@ -428,6 +435,8 @@ def tingsprocessingd1(Pars, curve_data):
         Results.loc[kk, 'ind_depth'] = MaxDepth
         Results.loc[kk, 'AdjRsqHertz'] = AdjRSq_HertzResults
         Results.loc[kk, 'Height'] = HeightHRes
+        if np.isnan(HeightHRes) and Height>0:
+            Results.loc[kk, 'Height'] = Height
         Results.loc[kk, 'cpHertz'] = contactHertzRes
         Results.loc[kk, 'EHertzBEC'] = EHertzBEC
         Results.loc[kk, 'contact_timeH'] = contact_timeH
@@ -458,6 +467,7 @@ def tingsprocessingd1(Pars, curve_data):
             pr_step = np.floor(len(IndentationApproach)/10)  # step for adjustment of the contact point
             pointright = pointright - pr_step
             break_condition = 0
+            modelting2 = modelting  # for test_models
             for ii in range(0, 15):  # max number of steps for adjustment of the contatct point
                 pointright = pointright + pr_step
                 indstart = int(locationcpH + pointright)
@@ -479,9 +489,41 @@ def tingsprocessingd1(Pars, curve_data):
                 elif modelting == 'SLS':
                     par00 = [EHertz*1.3/NF, 0.03, EHertz*0.7/NF]  # E0,tau,Einf
                     parboundsnp = np.array(((EHertz*0.001/NF, 1e-10, 0), (EHertz*1e5/NF, 1e3, EHertz*2/NF)))
+                elif modelting == 'sPLReta' or modelting == 'sPLRetatest':
+                    par00 = [EHertz/NF,0.2,1e-10/NF]  # E1, alpha, nu
+                    parboundsnp = np.array(((EHertz*0.01/NF, 0, 0), (EHertz*1e4/NF, 1 ,1e-4/NF)))
                 else:
                     par00 = [EHertz/NF, 0.15, EHertz*0.1/NF]  # E1,alpha,Einf
                     parboundsnp = np.array(((0, 0, 0), (EHertz*1e5/NF, 1e5, 1e5)))
+
+                # sPLRetatest - nu from speed    
+                if modelting == 'sPLRetatest' or modelting2 == 'sPLRetatest':
+                    indspeed = np.diff(indentationfull)/dT
+                    indspeed = np.append(indspeed, indspeed[-1])
+                    maxSpeedloc = np.argmax(indspeed)
+                    maxSpeed = indspeed[maxSpeedloc]
+                    forcediff = np.diff(Forcefull)
+                    peakminforcepos = np.argmin(forcediff[0:MaxInd])
+                    peakminforce = forcediff[peakminforcepos]
+                    peakmaxforcepos = np.argmax(forcediff[0:MaxInd])
+                    peakmaxforce = forcediff[peakmaxforcepos]
+                    # plt.plot(indspeed) plt.plot(forcediff)
+                    # forcediff = smoothM(forcediff,5);
+                    dF= np.mean([-peakminforce, peakmaxforce])
+                    dInd = maxSpeed
+                    if np.isnan(SurfZ) == 0 and HeightfromZ == 1:
+                        Height = -Displ[indstart]-SurfZ
+                    if Height>0:
+                        [BEC, BECspeed] = bottom_effect_correction(Poisson, Radius, Height, modelprobe, indentationfull);
+                    else:
+                        BECspeed = np.ones(len(indentationfull))
+                    nu = dF/K1/power/(indentationfull[peakminforcepos+1]**(power-1)*dInd)*3.7/BECspeed[maxSpeedloc-1]
+                    par00 = [EHertz/NF,0.2,nu/NF] # E1,alpha,nu
+                    parboundsnp = np.array(((EHertz*0.01/NF, 0, (nu/NF)*0.3), (EHertz*1e4/NF, 1 , nu/NF)))
+                    Fixedpars = np.array([[0, 0, 0], [0, 0, nu]], dtype=float)
+                    # Fixedpars = np.array([[0, 0, 1], [0, 0, nu]], dtype=float)
+                    modelting = 'sPLReta'
+                    modelting2 = 'sPLRetatest'
 
                 FixedparsNF = np.copy(Fixedpars)
                 FixedparsNF[1, [0, 2]] = FixedparsNF[1, [0, 2]]/NF
@@ -492,10 +534,10 @@ def tingsprocessingd1(Pars, curve_data):
                     Height = -Displ[indstart]-SurfZ
 
                 warnings.simplefilter("ignore")  # ignore warnings temporary
-                parbounds = tuple(map(tuple, parboundsnp))
+                # parbounds = tuple(map(tuple, parboundsnp))
 
                 numfitpars = 3-sum(fixedp)
-                FixedparsNFtemp = np.array([[0, 0, 0], [0, 0, 0]], dtype=np.double)
+                # FixedparsNFtemp = np.array([[0, 0, 0], [0, 0, 0]], dtype=np.double)
                 if numfitpars > 0:
                     # x is indentationfull
                     funTing = lambda parf, x: tingFCPWL3uni(parf, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, x)[0]
@@ -631,7 +673,7 @@ def tingsprocessingd1(Pars, curve_data):
             # plt.plot(currentcurve3[:,2], currentcurve3[:,4])
             # plt.plot(currentcurve3[:,2], currentcurve3[:,5])
         curve_data[1] = currentcurve2
-    except BaseException as error:
+    except BaseException as error:  # comment  to cehck errors
         Results.loc[kk, 'Name'] = Pars.fnameshort
         Results.loc[kk, 'Pixel'] = curve_data[0]
         Results.loc[kk, 'comment'] = str(error)
@@ -641,5 +683,18 @@ def tingsprocessingd1(Pars, curve_data):
 if __name__ == '__main__':
     # serach for Data in workspace
     import matplotlib.pyplot as plt
-    curve_data = Data[0]
+    from utils_ViscoIndent import load_AFM_data_pickle_short, curve_from_saved_pars
+    filename= 'D:/MailCloud/AFM_data/BrukerResolve/cytotoxicity/20211118_Ref52_ACR+NaOCL/control.0_000062.dat'
+    # Pars, Data, Results = load_AFM_data_pickle_short(filename)
+    # Pars.HeightfromZ = 0
+    # Pars.height = 1000
+    kk = 4
+    curve_data = Data[kk]
+    curve=curve_data[1]
+    # plt.plot(curve[:,0], curve[:,1])
     Results2, curve_data, DFL_corrs = tingsprocessingd1(Pars, curve_data)
+    currentcurve3 = curve_from_saved_pars(Pars, Data[kk], Results.loc[kk, :])
+    plt.plot(currentcurve3[:, 2], currentcurve3[:, 3])
+    plt.plot(currentcurve3[:, 2], currentcurve3[:, 4])
+    plt.plot(currentcurve3[:, 2], currentcurve3[:, 5])
+

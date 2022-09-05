@@ -28,6 +28,7 @@ class selectROIs(QMainWindow):
             self.initUI()
 
     def initUI(self):
+        # print('ROI_winodw_test1')
         if not hasattr(self.ROIdialog, 'commongui'):
             global Pars
             self.Pars = Pars
@@ -111,6 +112,7 @@ class selectROIs(QMainWindow):
         self.setCentralWidget(widget)
         self.show()
         self.activateWindow()
+        # print('ROI_winodw_test2')
 
     def Reselect_btn_clicked(self):
 

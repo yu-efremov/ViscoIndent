@@ -37,6 +37,7 @@ class flattenAFMwrap(QMainWindow):
         self.topo = self.Pars.topo
         self.Pars.topo2 = self.Pars.topo  # in case no selection made
         self.PL_strategy = self.Pars.PLpars.strategy
+        self.height = 0
 
         self.fig = fig = Figure()
         self.canvas1 = FigureCanvasQTAgg(fig)
@@ -53,14 +54,22 @@ class flattenAFMwrap(QMainWindow):
             layoutA.addWidget(self.btngroup1opts[i])
             self.btngroup1.addButton(self.btngroup1opts[i], i)
             self.btngroup1opts[i].clicked.connect(self.radio_button_clicked)
-        self.btngroup1opts[0].setChecked(True)
-        self.le01 = QLineEdit(self)
+        if hasattr(self.Pars, 'HeightfromZ') and self.Pars.HeightfromZ == 1:
+            self.btngroup1opts[1].setChecked(True)
+        elif hasattr(self.Pars, 'height') and self.Pars.height > 0:
+            self.btngroup1opts[2].setChecked(True)
+            self.height = self.Pars.height
+        else:
+            self.btngroup1opts[0].setChecked(True)
+        self.le01 = QLineEdit(self)  # thickness
+        self.le01.setText(str(self.height))
+        self.le01.editingFinished.connect(self.edit_height)
         layoutA.addWidget(self.le01)
 
         self.label21 = QLabel('Zero height level location strategy')
         self.btngroup2opts = [QRadioButton("plane by 3 points"),
-                              QRadioButton("horizontal plane by 1 point"),
-                              QRadioButton("reseved for another option")]
+                              QRadioButton("horizontal plane by 1 point")]
+                              # QRadioButton("reseved for another option")]
         self.btngroup2 = QButtonGroup()
 
         layoutB = QVBoxLayout()
@@ -109,13 +118,16 @@ class flattenAFMwrap(QMainWindow):
         self.setCentralWidget(widget)
         self.show()
         self.activateWindow()
+        self.radio_button_clicked()
 
     def Selectpts_btn_clicked(self):
         # print(self.le1.text())
         print(self.btngroup1.checkedId())
         self.fig2.clear()
-        self.ax2 = self.fig2.add_subplot(111, title="Processed image")
         self.ax2.clear()
+        self.ax2.set_title("Processed image")
+        self.ax2 = self.fig2.add_subplot(111, title="Processed image")
+        # img2 = self.ax2.imshow(self.Pars.topo2, interpolation='nearest', cmap='viridis', origin='lower')
         self.canvas2.draw()
         self._cid = self.fig.canvas.mpl_connect(
             "axes_enter_event", self._start_ginput)
@@ -125,6 +137,9 @@ class flattenAFMwrap(QMainWindow):
 
     def Continue_btn_clicked(self):
         self.closeEvent(1)  # not good - fires twice
+
+    def edit_height(self):
+        self.radio_button_clicked()
 
     def points_no_pressbutton(self):
         self._cid = self.fig.canvas.mpl_connect(
@@ -145,10 +160,10 @@ class flattenAFMwrap(QMainWindow):
             self.Pars.HeightfromZ = 1
             self.Pars.PLpars.strategy = 3
             if self.btngroup2.checkedId() == 0:
-                str_2 = 'select 3 or more points and press MMB'
+                str_2 = 'select 3 or more points and press RMB'
                 self.Pars.PLpars.PLmode = 1
             elif self.btngroup2.checkedId() == 1:
-                str_2 = 'select 1 or more points and press MMB'
+                str_2 = 'select 1 or more points and press RMB'
                 self.Pars.PLpars.PLmode = 2
             else:
                 str_2 = ''
@@ -156,13 +171,16 @@ class flattenAFMwrap(QMainWindow):
             self.points_no_pressbutton()
         elif self.btngroup1.checkedId() == 2:
             str_fig_add1 = 'use thickness value'
-            self.Pars.HeightfromZ = 1
+            self.Pars.HeightfromZ = 0
+            self.Pars.height = float(self.le01.text())
         self.ax1.set_title("Original image \n" + str_fig_add1)
         self.canvas1.draw()
+        self.Selectpts_btn_clicked()
 
     def closeEvent(self, event):
         if not hasattr(self.MAPdialog, 'commongui'):
             print('module BEC exit (not common)')
+            print('Pars.Height = ' + str(self.Pars.height))
             QApplication.quit()
         else:
             self.MAPdialog.Pars = self.Pars
@@ -174,7 +192,7 @@ class flattenAFMwrap(QMainWindow):
         self.fig.canvas.mpl_disconnect(self._cid)
         # Workaround for now; patch makes this unnecessary.
         self.fig.show = lambda: None
-        self.pts = self.fig.ginput(-1, timeout=0)
+        self.pts = self.fig.ginput(-1, timeout=0, mouse_pop=2, mouse_stop=3)  # 2 is MMB, 3 is RMB
         # print(self.pts)
         pts = np.asarray(self.pts)
         pts = pts.round()  # round pts coordinates
@@ -213,11 +231,11 @@ class flattenAFMwrap(QMainWindow):
         self.Pars.PL = bas
         # self.Pars.PLpars.strategy = PL_strategy
         # self.Pars.PLpars.PLmode = PLmode
-
+        # self.fig2.clear()
         self.ax2.clear()
         # self.ax2 = self.fig2.add_subplot(111, title = "Processed image")
         img2 = self.ax2.imshow(self.Pars.topo2, interpolation='nearest', cmap='viridis', origin='lower')
-        self.fig2.colorbar(img2)
+        self.fig2.colorbar(img2, ax=self.ax2)
         self.ax2.set_title("Processed image")
         self.canvas2.draw()
         # self.show()

@@ -21,7 +21,7 @@ def modellist():
                  'springpot-springpot-parallel', 'springpot-springpot-serial',
                  'springpot-springpot-serial2', 'springpot-springpot-serial3',
                  'fractionalSLS', 'fractionalSLS2', 'fractionalMWe',
-                 'fractionalMWe2', 'mPLR'
+                 'fractionalMWe2', 'mPLR', 'sPLRetatest'
                  ]
     return modellist
 
@@ -100,7 +100,7 @@ def relaxation_function(par, model, Time):
         Einf = par[2]
         relfun = lambda E1, alpha, Einf, t: (E1 - Einf) * t ** (-alpha) + Einf
         Et = relfun(E1, alpha, Einf, Time)
-    elif model == 'springpot-dashpot-parallel' or model == 'sPLReta':   #1 'sPLReta'
+    elif model == 'springpot-dashpot-parallel' or model == 'sPLReta' or model == 'sPLRetatest':   #1 'sPLReta'
         parnames = ['Ea1', 'alpha', 'eta0']
         Ea1 = par[0]
         alpha = par[1]
