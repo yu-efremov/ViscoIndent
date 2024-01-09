@@ -1,6 +1,19 @@
 # -*- coding: utf-8 -*-
 """
 @author: Yuri Efremov
+function tingFC_constructor takes parameters from ViscoIndent GUI and
+construct force vs distance curve via ting_numerical function
+most of the used parameters described in Ting_numerical.py
+additional parameters:
+    Pars['indpars'] - constructor for indentation history
+    indpars[0]:  [yes/no] 0 - use constructor, 1 - use provided indentation history
+    indpars[1]:  maximum indentation depth [nm]
+    indpars[2]:  indentation speed [nm/s]
+    indpars[3]:  number of points in approach phase
+    indpars[4]:  [ramp/sin] - 0 - ramp (triangular indentation profile), 1 - sinusoidal indentation profile
+    indpars[5]:  add dwell phase [s]
+    Pars['noise'] noise level relative to median force [%] (random.normal)
+    Pars['hydrodrag'] coefficient of viscous drag of the probe [nN*s/nm] 
 """
 import numpy as np
 from numpy import pi, tan, sin
@@ -10,20 +23,20 @@ from Ting_numerical import ting_numerical
 
 
 def tingFC_constructor(Pars, indentationfull):
-    modelprobe = Pars['probe_shape']
-    probe_dim = Pars['probe_dimension']
+    probe_geom = Pars['probe_shape']  # probe shape
+    probe_size = Pars['probe_dimension']  # probe size
     Poisson = Pars['Poisson']          # Poisson's ratio of the sample
     dT = Pars['dT']                    # Sampling time
-    modelting = Pars['viscomodel']
-    Height = Pars['height']
-    pars = Pars['Vpars']
+    modelting = Pars['viscomodel']  # relaxation function
+    Height = Pars['height']  # sample thickness
+    pars = Pars['Vpars']  # relaxation function parameters
     noise = Pars['noise']  # % noise level from median force
     hydrodrag = Pars['hydrodrag']  # [nN*s/nm] coefficient of viscous drag
 
     try:
         indpars = Pars['indpars']
     except:
-        indpars = 0
+        indpars = 0  # if no indentation parameters were provided, the "indentationfull" is used
 
     PointN = indentationfull.size
     time = np.linspace(dT, dT*PointN, PointN)
@@ -32,17 +45,18 @@ def tingFC_constructor(Pars, indentationfull):
     Depth = indentationfull[MaxInd]
     Speed = Depth/time[MaxInd]
 
-    if indpars[0] == 1:  # [yes/no; depth; speed; numpoimts; ramp/sin];
+    # indpars: constructor for the indentation history
+    if indpars[0] == 1:  # [yes/no; depth; speed; numpoints; ramp/sin; dwell points];
         Depth = indpars[1]  # [nm]
         Speed = indpars[2]  # [nm/s]
-        MaxInd = int(indpars[3])  # num points in approach-indentation
-        dT2 = Depth/Speed/MaxInd
+        MaxInd = int(indpars[3])  # number of points in approach-indentation
+        dT2 = Depth/Speed/MaxInd  # calculate time step based on number of points
         dT = dT2  # suppress original dT
         PointN = MaxInd*2
         time = np.linspace(0, dT*(PointN-1), PointN)
         timeL = np.linspace(dT, dT*(PointN*2-1), PointN*2)
         ind_ramp = np.zeros([MaxInd*2])
-        ind_rampL = np.zeros([MaxInd*4])
+        ind_rampL = np.zeros([MaxInd*4])  # extended indentation with noncontact region
         if indpars[4] == 0:  # ramp or sin
             for ii in range(MaxInd):
                 ind_ramp[ii] = Speed*time[ii]
@@ -56,7 +70,7 @@ def tingFC_constructor(Pars, indentationfull):
             for ii in range(2*MaxInd, MaxInd*4):
                 ind_rampL[ii] = Speed*timeL[-1]-Speed*time[MaxInd]-Speed*timeL[ii]-Speed*dT
 
-        elif indpars[4] == 1:
+        elif indpars[4] == 1:  # sinuspidal indentation
             Freq = Speed/Depth/4
             ind_ramp = Depth*sin(2*pi*Freq*time)  # -1/4period
             ind_rampL = Depth*sin(2*pi*Freq*timeL-pi/2)  # -1/2period
@@ -65,7 +79,7 @@ def tingFC_constructor(Pars, indentationfull):
         indentationfullL = ind_rampL
 
         if len(indpars) > 5:  # add dwell region
-            Dwell_time = indpars[5]  # in seconds
+            Dwell_time = indpars[5]  # dwell time in seconds
             dwell_points = int(Dwell_time/dT)
             PointN = MaxInd*2 + dwell_points
             time = np.linspace(0, dT*(PointN-1), PointN)
@@ -77,17 +91,21 @@ def tingFC_constructor(Pars, indentationfull):
         else:
             dwell_points = 0
 
+    # launch ting_numerical to construct force
     [force, cradius, contact_time, t1_ndx2, Et] = ting_numerical(pars,
-        Poisson, probe_dim, dT, MaxInd, Height, modelting, modelprobe,
+        Poisson, probe_size, dT, MaxInd, Height, modelting, probe_geom,
         indentationfull)[0:5]
 
+    # add noise
     force = force + np.random.normal(0, 0.01*noise*np.median(force), len(force))
 
+    # force for the extended indentation with non-contact region
     # forceL = np.pad(force, MaxInd - dwell_points, 'constant', constant_values=(0, 0))
     forcePadL = np.zeros(MaxInd - dwell_points) + np.random.normal(0, 0.01*noise*np.median(force), MaxInd - dwell_points)
     forcePadR = np.zeros(MaxInd - dwell_points) + np.random.normal(0, 0.01*noise*np.median(force), MaxInd - dwell_points)
     forceL = np.concatenate((forcePadL, force, forcePadR), axis=0)
 
+    # add hydrodynamic drag
     speedfull = np.diff(indentationfullL)/dT
     speedfull = np.append(speedfull, speedfull[-1])
     drag = speedfull*hydrodrag
@@ -135,6 +153,7 @@ if __name__ == '__main__':
     plt.xlabel('Indentation')
     plt.ylabel('Force')
     plt.figure(num='Simulated Force vs Time')
-    plt.plot(time, force)
+    timeL = np.arange(0, len(forceL))*Pars['dT']
+    plt.plot(timeL, forceL)
     plt.xlabel('Time')
     plt.ylabel('Force')

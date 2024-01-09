@@ -111,7 +111,7 @@ class flattenAFMwrap(QMainWindow):
         layoutM1.addLayout(layoutB, 1)
         layoutM = QVBoxLayout()
         layoutM.addLayout(layoutM1)
-        layoutM.addLayout(layout3)
+        layoutM.addLayout(layout3, 2)
         layoutM.addWidget(self.Selectpts_btn)
         layoutM.addWidget(self.Continue_btn)
         widget.setLayout(layoutM)

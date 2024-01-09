@@ -96,6 +96,9 @@ def load_AFM_data_pickle_short(filename):
 
     return Pars, Data, Results
 
+def AFM_data_pickle_to_short(filename):
+    Pars, Data, Results = load_AFM_data_pickle(filename)
+    save_AFM_data_pickle_short(filename, Pars, Data, Results)
 
 def curve_from_saved_pars(Pars, cData, cResults):
     currentcurve3 = cData[1]

@@ -6,6 +6,7 @@ work, checked, simple version with def
 import_opt = 'single' - single file,
 import_opt = 'multi' - multiple files
 import_opt = 'folder' - foldername
+import_opt = 'multi_from_folders' - multiple from several folders
 import_opt = 'multi_folders' - many folder names
 import_opt = 'get_subfolders' - subfolders of selected folder
 import_opt = 'all_in_folder' - folder content
@@ -172,8 +173,8 @@ def file_import_dialog_qt5(import_opt='multi', file_types='*.*',
 if __name__ == '__main__':  #
     # multi_folders single multi multi_folders all_in_folder_2level all_in_selected_folders get_subfolders
     import_opt = 'multi_from_folders'  # 
-    import_opt = 'get_subfolders'
-    import_opt = 'all_in_selected_folders'
+    # import_opt = 'get_subfolders'
+    # import_opt = 'all_in_selected_folders'
     file_types = '*.dat'  # '*.dat' '*.*'
     start_folder = 'D:/MailCloud/BioMomentum'
     start_folder = 'D:/MEGAsync/My materials/python/Ting_code/examples'

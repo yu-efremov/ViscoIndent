@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QCheckBox,\
 from PyQt5.QtCore import Qt
 
 from matplotlib import cm
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+from matplotlib.colors import ListedColormap # LinearSegmentedColormap
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
@@ -67,6 +67,8 @@ class maps_view(QMainWindow):
         self.cmaplist = plt.colormaps()
         top = cm.get_cmap('Oranges', 64)
         bottom = cm.get_cmap('viridis', 512)
+        # top = plt.colormaps['Oranges']
+        # bottom = plt.colormaps['viridis']
         newcolors = np.vstack((top(np.linspace(0, 1, 64)),
                                bottom(np.linspace(0, 1, 512))))
         self.newcmp = ListedColormap(newcolors, name='viridis_topo')
@@ -76,13 +78,13 @@ class maps_view(QMainWindow):
         self.pixN = np.asarray(self.Results.Pixel, int)
 
         # self.Res_fields = list(self.Results.columns)
-        self.Res_fields = list(self.Results.select_dtypes(include=['float32']).columns)
+        self.Res_fields = list(self.Results.select_dtypes(include=['float64', 'float32']).columns)
 
         self.fig = fig = Figure()
         self.canvas1 = FigureCanvasQTAgg(fig)
         self.ax1 = fig.add_subplot(111, title="Map")
         img1 = self.ax1.imshow(self.Pars.topo, interpolation='nearest', cmap='viridis', origin='lower')
-        self.cb = fig.colorbar(img1)
+        self.cb = self.fig.colorbar(img1)
 
         self.boxROI = QCheckBox("Show ROIs", self)
         self.boxROI.stateChanged.connect(self.clickBoxROI)
@@ -131,7 +133,9 @@ class maps_view(QMainWindow):
 
     def cbRes_changed(self):
 
-        self.ax1.clear()
+        # self.ax1.clear()
+        self.fig.clear()
+        self.ax1 = self.fig.add_subplot(111, title="Map")
         if self.cbRes.currentText() == 'topography':
             self.currentmap = self.Pars.topo
             cmapS = self.newcmp
@@ -146,7 +150,8 @@ class maps_view(QMainWindow):
             img1 = self.ax1.imshow(np.log(self.currentmap), interpolation='nearest', cmap=cmapS, origin='lower')  # 'jet'
         else:
             img1 = self.ax1.imshow(self.currentmap, interpolation='nearest', cmap=cmapS, origin='lower')  # 'jet'
-        self.cb.remove()
+        # self.cb.remove()
+        # del self.cb
         self.cb = self.fig.colorbar(img1)
         self.canvas1.draw()
         if self.boxROI.isChecked():

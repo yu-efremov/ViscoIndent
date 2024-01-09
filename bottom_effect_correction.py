@@ -11,7 +11,7 @@ def bottom_effect_correction(Poisson, Probe_dimension, Height, modelprobe,
                              indentationfull):
     BEC = np.ones(len(indentationfull))
     indentationfull[indentationfull < 0] = np.nan  # to remove warnings in sqrt
-    if 0.45 <= Poisson <= 0.5:  # coefficients from doi.org/10.1016/j.bpj.2018.05.012
+    if 0.45 <= Poisson < 0.5:  # coefficients from doi.org/10.1016/j.bpj.2018.05.012
         if modelprobe == 'sphere':  # sphere
             Dpar1 = 1.133
             Dpar2 = 1.497
@@ -67,11 +67,15 @@ def bottom_effect_correction(Poisson, Probe_dimension, Height, modelprobe,
             bettaD = (0.6387-1.0277*Poisson+1.5164*Poisson**2)/(1-Poisson)  # bonded case
             # alpha = -0.347*(3-2*Poisson)/(1-Poisson)  # nonbonded case
             # bettaD = 0.056*(5-2*Poisson)/(1-Poisson)  # nonbonded case
+            # print('nonbonded_case!!') manual switch between bonded/ non-bonded
 
             Dpar1 = -2*alpha/pi
             Dpar2 = 4*(alpha/pi)**2
+            #Dpar2 = 4*(alpha/pi)**2 + alpha/pi*2/3*alpha/pi # Garcia et al. very close
             Dpar3 = -(8/pi**3)*(alpha**3+(4*(pi**2)*bettaD/15))
+            #Dpar3 = -(8/pi**3)*(alpha**3+(4*(pi**2)*bettaD/15)) - Dpar2*2/3*alpha/pi
             Dpar4 = (16*alpha/pi**4)*(alpha**3+(3*(pi**2)*bettaD/5))
+            #Dpar4 = (16*alpha/pi**4)*(alpha**3+(3*(pi**2)*bettaD/5)) - Dpar3*2/3*alpha/pi
             R = Probe_dimension
             h = Height
             b = (R*indentationfull)**(0.5)/h

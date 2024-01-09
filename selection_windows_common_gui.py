@@ -16,11 +16,12 @@ import numpy as np
 from Pars_class import Pars_gen
 from import_AFM_data import Bruker_import
 from import_ARDF import ARDF_import
+from import_Asylum_ibw import import_multifiles_ibw
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir+ '/projects/microtester')
 sys.path.insert(0, parentdir+ '/projects/biomomentum')
-from Biomomentum_import_FC import import_specific_BM
+from Biomomentum_import_FC import import_multifiles_BM
 from import_Microtester import import_Microtester_toVI_multi
 from make_Results import make_Results
 from utils_ViscoIndent import load_AFM_data_pickle, load_AFM_data_pickle_short
@@ -44,6 +45,9 @@ class selection_win1(QMainWindow):
         self.btn_loadARDF = QPushButton("Load .ARDF (Asylum)", self)
         self.btn_loadARDF.clicked.connect(self.load_ardf)
 
+        self.btn_load_ibw = QPushButton("Load .ibw (Asylum)", self)
+        self.btn_load_ibw.clicked.connect(self.load_ibw)
+
         self.btn_loadBiomomentumFC = QPushButton("Load Biomomentum data", self)
         self.btn_loadBiomomentumFC.clicked.connect(self.load_biomomentum)
 
@@ -59,6 +63,10 @@ class selection_win1(QMainWindow):
         self.btn_Exit = QPushButton("Exit", self)
         self.btn_Exit.clicked.connect(self.btn_Exit_pressed)
         self.lookfolder = "examples/"
+        try:
+            self.lookfolder = self.selection_win1_gui.start_folder
+        except:
+            pass
         if 'Data' in globals() or hasattr(self.selection_win1_gui, 'Data'):
             print('Data were found in workspace')
             strData = 'Data found in workspace. Reuse or open new?'
@@ -79,6 +87,7 @@ class selection_win1(QMainWindow):
         layoutA = QHBoxLayout()
         layoutA.addWidget(self.btn_loadSPM)
         layoutA.addWidget(self.btn_loadARDF)
+        layoutA.addWidget(self.btn_load_ibw)
         layoutA.addWidget(self.btn_loadBiomomentumFC)
         layoutB = QHBoxLayout()
         layoutA.addWidget(self.btn_loadMicrotesterFC)
@@ -118,7 +127,7 @@ class selection_win1(QMainWindow):
             Pars.viscomodel = 'elastic'
             Pars.hydro.corr = 1
             Pars.hydro.corr_type = 2
-            Pars.hydro.speedcoef = 4.0e-7
+            Pars.hydro.speedcoef = 5.0e-7
             Pars.cp_adjust = 1
 
             Pars.filedir = []
@@ -134,6 +143,9 @@ class selection_win1(QMainWindow):
             print(self.Data[0])
             self.Results.Pixel = self.Data[:, 0]  # remove nans
             if hasattr(self.selection_win1_gui, 'commongui'):
+                # self.selection_win1_gui.supress_ROIquestion = 1
+                if hasattr(self.selection_win1_gui, 'config'):
+                    delattr(self.selection_win1_gui, 'config')
                 self.selection_win1_gui.Pars = self.Pars
                 self.selection_win1_gui.Data = self.Data
                 self.selection_win1_gui.Results = self.Results
@@ -143,7 +155,7 @@ class selection_win1(QMainWindow):
 
     def load_ardf(self):
         options = QFileDialog.Options()
-        self.fileName, _ = QFileDialog.getOpenFileName(self, "Select Asylum file", self.lookfolder, "AR Files (*.ardf)", options=options)
+        self.fileName, _ = QFileDialog.getOpenFileName(self, "Select Asylum ARDF file", self.lookfolder, "AR Files (*.ardf)", options=options)
         if self.fileName != "":
             filedir0 = self.fileName
             self.supress_ROIquestion = 0
@@ -182,39 +194,70 @@ class selection_win1(QMainWindow):
                 self.close()
                 self.selection_win1_gui.initUI2()
 
+    def load_ibw(self):
+        options = QFileDialog.Options()
+        self.fileNames, _ = QFileDialog.getOpenFileNames(self, "Select Asylum .ibw files", self.lookfolder, "All Files (*.ibw);", options=options)
+        # filenames = []  # for several folder selction
+        # ij = 2
+        # while self.fileNames:
+        #     # print(w.fileNames)
+        #     # w.close()
+        #     filenamesH = self.fileNames
+        #     for filename in filenamesH:
+        #         filenames.append(filename)
+        #         window_title2 = "Select Biomomentum file" + ' from folder_' + str(ij) + ' or cancel'
+        #     ij = ij + 1
+        #     self.fileNames, _ = QFileDialog.getOpenFileNames(self, window_title2, self.lookfolder, "All Files (*.txt);;Python Files (*.py)", options=options)
+        # self.fileNames = filenames
+        # print(self.fileNames)
+        # if self.fileNames != "":
+        if len(self.fileNames)>0:
+            Pars, Data, Results = import_multifiles_ibw(self.fileNames)
+            Pars.topo = np.ones([1, np.shape(Data)[0]])
+            print('Asylum .ibw data loaded')
+            self.Data = Data
+            self.Pars = Pars
+            self.Results = Results
+            self.supress_ROIquestion = 1
+            # self.Results = make_Results(np.shape(self.Data)[0])
+            # print(self.Data[0])
+            self.Results.Pixel = self.Data[:, 0]  # remove nans
+            if hasattr(self.selection_win1_gui, 'commongui'):
+                self.selection_win1_gui.Pars = self.Pars
+                self.selection_win1_gui.Data = self.Data
+                self.selection_win1_gui.Results = self.Results
+                self.selection_win1_gui.supress_ROIquestion = self.supress_ROIquestion
+                from config import biomomentum as config  # biomomentum config for ibw
+                self.selection_win1_gui.config = config
+                self.close()
+                self.selection_win1_gui.initUI2()
 
     def load_biomomentum(self):
         options = QFileDialog.Options()
-        self.fileName, _ = QFileDialog.getOpenFileName(self, "Select Biomomentum file", self.lookfolder, "All Files (*.txt);;Python Files (*.py)", options=options)
-        if self.fileName != "":
-            filedir0 = self.fileName
-            self.supress_ROIquestion = 1
-            fnameshort = filedir0.split("/")
-            fnameshort = fnameshort[-1]
-            Pars = Pars_gen()
-            Pars.probe_shape = 'sphere'
-            Pars.probe_dimension = 1000
-            Pars.Poisson = 0.5         # Poisson's ratio of the sample
-            Pars.dT = 1e-3                 # Sampling time
-            Pars.height = 0
-            Pars.HeightfromZ = 1
-            Pars.viscomodel = 'elastic'
-            Pars.hydro.corr = 0
-            Pars.hydro.corr_type = 0
-            Pars.hydro.speedcoef = 0
-            Pars.cp_adjust = 1
-
-            Pars.filedir = []
-            Pars.filedir.append(filedir0)
-            Pars.fnameshort = []
-            Pars.fnameshort.append(fnameshort)
-            self.Data = {}
+        self.fileNames, _ = QFileDialog.getOpenFileNames(self, "Select Biomomentum file", self.lookfolder, "All Files (*.ibw);;Python Files (*.py)", options=options)
+        filenames = []
+        ij = 2
+        while self.fileNames:
+            # print(w.fileNames)
+            # w.close()
+            filenamesH = self.fileNames
+            for filename in filenamesH:
+                filenames.append(filename)
+                window_title2 = "Select Biomomentum file" + ' from folder_' + str(ij) + ' or cancel'
+            ij = ij + 1
+            self.fileNames, _ = QFileDialog.getOpenFileNames(self, window_title2, self.lookfolder, "All Files (*.txt);;Python Files (*.py)", options=options)
+        self.fileNames = filenames
+        # print(self.fileNames)
+        # if self.fileNames != "":
+        if len(self.fileNames)>0:
             num_regs = 0
-            Pars, Data, Results = import_specific_BM(filedir0, num_regs)
+            Pars, Data, Results = import_multifiles_BM(self.fileNames, num_regs)
+            Pars.topo = np.ones([1, np.shape(Data)[0]])
             print('Biomomenum data loaded')
             self.Data = Data
             self.Pars = Pars
             self.Results = Results
+            self.supress_ROIquestion = 1
             # self.Results = make_Results(np.shape(self.Data)[0])
             print(self.Data[0])
             self.Results.Pixel = self.Data[:, 0]  # remove nans
@@ -223,6 +266,8 @@ class selection_win1(QMainWindow):
                 self.selection_win1_gui.Data = self.Data
                 self.selection_win1_gui.Results = self.Results
                 self.selection_win1_gui.supress_ROIquestion = self.supress_ROIquestion
+                from config import biomomentum as config  # biomomentum cells config
+                self.selection_win1_gui.config = config
                 self.close()
                 self.selection_win1_gui.initUI2()
 
@@ -276,12 +321,12 @@ class selection_win1(QMainWindow):
         if self.fileName != "":
             # self.Pars, self.Data, self.Results = load_AFM_data_pickle(self.fileName)
             self.Pars, self.Data, self.Results = load_AFM_data_pickle_short(self.fileName)
-            # self.supress_ROIquestion = 1
             if hasattr(self.selection_win1_gui, 'commongui'):
+                self.selection_win1_gui.loaded = 1
                 self.selection_win1_gui.Pars = self.Pars
                 self.selection_win1_gui.Data = self.Data
                 self.selection_win1_gui.Results = self.Results
-                self.selection_win1_gui.supress_ROIquestion = 1
+                self.selection_win1_gui.supress_ROIquestion = 1  # rewrited by config!!!
                 self.close()
                 self.selection_win1_gui.initUI2()
 
@@ -298,6 +343,7 @@ class selection_win1(QMainWindow):
             self.Pars = Pars
             self.close()
         elif hasattr(self.selection_win1_gui, 'Data'):
+            self.selection_win1_gui.loaded = 1
             self.Pars = self.selection_win1_gui.Pars
             self.Data = self.selection_win1_gui.Data
             self.Results = self.selection_win1_gui.Results
@@ -315,7 +361,9 @@ class selection_win1(QMainWindow):
     def closeEvent(self, event):
 
         if not hasattr(self.selection_win1_gui, 'commongui'):
+            # print('here')
             if hasattr(self, 'Pars'):
+                # print('here2')
                 global Pars, Data, Results
                 Pars = self.Pars
                 Data = self.Data

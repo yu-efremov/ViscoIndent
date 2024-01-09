@@ -40,9 +40,9 @@ def LTInversion(t,lamda,alpha,beta,gama,log_epsilon):
     J = J1 - 1
 
     # Strength of the singularities
-    p = gama*np.ones((J1,), np.float)
+    p = gama*np.ones((J1,), np.float64)
     p[0] = max(0,-2*(alpha*gama-beta+1))
-    q = gama*np.ones((J1,), np.float)
+    q = gama*np.ones((J1,), np.float64)
     q[-1] = np.inf
     phi_s_star = np.hstack([phi_s_star, [np.inf]])
 
@@ -53,9 +53,9 @@ def LTInversion(t,lamda,alpha,beta,gama,log_epsilon):
            (phi_s_star[:-1] < phi_s_star[1:])))[0]
     # Initializing vectors for optimal parameters
     JJ1 = admissible_regions[-1]
-    mu_vett = np.ones((JJ1+1,), np.float)*np.inf
-    N_vett = np.ones((JJ1+1,), np.float)*np.inf
-    h_vett = np.ones((JJ1+1,), np.float)*np.inf
+    mu_vett = np.ones((JJ1+1,), np.float64)*np.inf
+    N_vett = np.ones((JJ1+1,), np.float64)*np.inf
+    h_vett = np.ones((JJ1+1,), np.float64)*np.inf
 
     # Evaluation of parameters for inversion of LT in each admissible region
     find_region = False

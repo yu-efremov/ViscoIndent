@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Jun 23 22:16:26 2022
-
+select several folders for import microtester data
 @author: Yuri
 """
 import numpy as np
@@ -9,6 +9,9 @@ import pandas as pd
 import sys
 sys.path.append('D:/MEGAsync/My materials/python')  # /Ting_code
 sys.path.append('D:/MEGAsync/My materials/python/Ting_code')
+sys.path.append('D:/Yuri Efremov/MEGAsync/My materials/python')  # /Ting_code
+sys.path.append('D:/Yuri Efremov/MEGAsync/My materials/python/Ting_code')
+
 from Pars_class import Pars_gen
 from make_Results import make_Results
 

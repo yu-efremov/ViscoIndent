@@ -124,7 +124,7 @@ class set_Pars(QMainWindow):
         # self.hydro_box.toggle()
         # self.hydro_box.stateChanged.connect(self.update_Pars)
         self.hydro_types_label = QLabel('hydro. correction type')
-        self.hydro_types = ['find corr. coeff. automatically', 'use pre-defined corr. coeff.']
+        self.hydro_types = ['find corr. coeff. automatically', 'use pre-defined corr. coeff.', 'biomomentum']
         self.cb_hydro_types = QComboBox()
         self.cb_hydro_types.addItems(self.hydro_types)
         # self.cb_hydro_types.currentIndexChanged.connect(self.update_Pars)
@@ -306,6 +306,8 @@ class set_Pars(QMainWindow):
             self.cb_hydro_types.setCurrentIndex(0)
         elif self.Pars.hydro.corr_type == 2:
             self.cb_hydro_types.setCurrentIndex(1)
+        elif self.Pars.hydro.corr_type == 3:
+                self.cb_hydro_types.setCurrentIndex(2)
         self.hydro_coeff_le.setText(str(self.Pars.hydro.speedcoef))
         if self.Pars.HeightfromZ == 1 or self.Pars.height > 0:
             self.BEC_box.setChecked(True)

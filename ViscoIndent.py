@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-gui for viscoindent, v. May-2021
+gui for viscoindent, v. January-2024
 with images for viscomodels
 gui_Viscoindent
 """
@@ -38,7 +38,7 @@ class App(QMainWindow):
     def read_data(self):
         model = self.table.model()  # general parameters (indenter, etc.)
         model2 = self.table2.model()  # indentation history
-        model3 = self.table3.model()  # viscoelastic parameters
+        model3 = self.table3.model()  # viscoelastic model (relaxation function) parameters
         Pars2 = []
         for row in range(model.rowCount(0)):
             Pars2.append([])

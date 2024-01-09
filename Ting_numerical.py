@@ -1,8 +1,25 @@
 # -*- coding: utf-8 -*-
 """
 numerical calculation of the force using the Ting's equations
-
-
+based on the provided indentation history and parameters
+of the probe and material
+Probe parameters:
+    probe_geom = sphere, cone, cylinder, pyramid, cylinder  (geomerty)
+    probe_size = probe dimension, probe_size of sphere/cylinder, angle of the cone/pyramid
+Material parameters:
+    Possion = Poisson's ratio
+    modelting = relaxation function
+    par = parameters of the relaxation function (viscoelastic parameters)
+    par[0] = EHertz in elastic, E0 in SLS, E1 in PLR model
+    par[1] = tau in SLS, alpha in PLR model
+    par[2] = Einf in SLS
+    ... see full description in the relaxation_functions.py
+    Height = thickness of the sample (0=inf)
+Indentation history parameters:
+    indentationfull = pointwise indentation history
+    dT = sampling time
+    MaxInd = point of maximum indentation (maximum contact area)
+    
 """
 
 import numpy as np
@@ -14,7 +31,7 @@ from bottom_effect_correction import bottom_effect_correction
 from relaxation_functions import relaxation_function
 
 
-def ting_numerical(par, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationfull):
+def ting_numerical(par, Poisson, probe_size, dT, MaxInd, Height, modelting, probe_geom, indentationfull):
     PointN = len(indentationfull)
     time = np.linspace(0, dT*(PointN-1), PointN)
 
@@ -29,26 +46,26 @@ def ting_numerical(par, Poisson, Radius, dT, MaxInd, Height, modelting, modelpro
         Et[0] = Et[1]+(Et[1]-Et[2])
 
     if Height > 0:  # bottom effect correction
-        [BEC, BECspeed] = bottom_effect_correction(Poisson, Radius, Height, modelprobe, indentationfull)
+        [BEC, BECspeed] = bottom_effect_correction(Poisson, probe_size, Height, probe_geom, indentationfull)
     else:
         BEC = np.ones(len(indentationfull))
         BECspeed = np.ones(len(indentationfull))
 
-    if modelprobe == 'sphere':
+    if probe_geom == 'sphere':
         power = 1.5
-        K1 = 4*Radius**0.5/3
-        K12 = Radius**0.5
-    elif modelprobe == 'cone' or modelprobe == 'pyramid':
+        K1 = 4*probe_size**0.5/3
+        K12 = probe_size**0.5
+    elif probe_geom == 'cone' or probe_geom == 'pyramid':
         power = 2
-        if modelprobe == 'cone':
-            K1 = 2/pi*tan(Radius*pi/180)
-        elif modelprobe == 'pyramid':
-            K1 = 1.406/2*tan(Radius*pi/180)
+        if probe_geom == 'cone':
+            K1 = 2/pi*tan(probe_size*pi/180)
+        elif probe_geom == 'pyramid':
+            K1 = 1.406/2*tan(probe_size*pi/180)
         K12 = K1
-    elif modelprobe == 'cylinder': # cylinder
+    elif probe_geom == 'cylinder': # cylinder
         power = 1
-        K1 = 2*Radius
-        K12 = Radius
+        K1 = 2*probe_size
+        K12 = probe_size
     K1 = K1/(1-Poisson**2)*1e-9
 
     # indentation history
@@ -74,7 +91,7 @@ def ting_numerical(par, Poisson, Radius, dT, MaxInd, Height, modelting, modelpro
     ForceT[:MaxInd]=ForceR[:MaxInd]
     # plt.plot(indentationfull,ForceR)
 
-    cntrad = K12*indentationfull**(power-1)  # contact radius
+    cntrad = K12*indentationfull**(power-1)  # contact probe_size
     cntrad[MaxInd:] = 0
 
     # retraction part calculation=============================================
@@ -134,6 +151,7 @@ def ting_numerical(par, Poisson, Radius, dT, MaxInd, Height, modelting, modelpro
 
 
 def smoothM(d, parS):
+    # auxillary function for smoothing the data by moving average
     y = d
     DL = len(d)-1
     for ij in range(len(d)-1):
@@ -157,13 +175,13 @@ def smoothM(d, parS):
 if __name__ == '__main__':
     import time
     Poisson = 0.5
-    Radius = 1
+    probe_size = 1
     MaxInd = 501
     dT = 1/MaxInd
     Height = 0
     modelting = 'springpot-dashpot-parallel'
     modelting = 'sPLR'
-    modelprobe = 'sphere'
+    probe_geom = 'sphere'
     t = np.linspace(0, 2, MaxInd*2+1)
     indentationfull = np.piecewise(t, [t <= 1, t >= 1], [lambda t: t, lambda t: 2-t])
     indentationfull = 50*indentationfull
@@ -171,7 +189,7 @@ if __name__ == '__main__':
     par = [10000, 0.1, 10, 1, 10]
     t1 = time.time()
     ForceT, cntrad, contact_time, t1_ndx, Et, ForceR = ting_numerical(par,
-    Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationfull)
+    Poisson, probe_size, dT, MaxInd, Height, modelting, probe_geom, indentationfull)
     t2 = time.time()
     print(t2-t1)
     f = plt.figure(1)

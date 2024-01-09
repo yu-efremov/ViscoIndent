@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Apr  3 19:00:51 2022
-
-@author: Yuri
-"""
 
 # -*- coding: utf-8 -*-
 """
@@ -121,7 +115,7 @@ if __name__ == '__main__':
     # fileName = filenames[0]
     for fileName in filenames:
         Pars, Data, Results = load_AFM_data_pickle_short(fileName)
-        Pars.viscomodel = 'sPLReta'
+        Pars.viscomodel = 'sPLRetatest'
         Results3 = make_Results(1)
         t1 = time.time()
         
@@ -129,6 +123,9 @@ if __name__ == '__main__':
         out = Parallel(n_jobs=num_cores-2)(delayed(tingsprocessingd1)(Pars, Data[kk]) for kk in range(0, Data.shape[0]-1))  # from class4
         t2 = time.time()
         print(t2-t1)
+        if np.shape(Data)[1]<3:
+            # Data.append(np.zeroes(np.shape(Data)[0]))
+            Data = np.append(Data, np.zeros((np.shape(Data)[0],1)), axis=1)
         for kk in range(0, len(out)):
             Data[kk][2] = out[kk][2]  # TODO 2 is dT, move to 3?
             Results.loc[kk, :] = out[kk][0].loc[0, :]

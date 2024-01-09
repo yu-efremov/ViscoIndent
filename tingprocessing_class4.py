@@ -128,10 +128,10 @@ def tingsprocessingd1(Pars, curve_data):
         Poisson = Pars.Poisson              # Poisson's ratio of the sample
         dT = Pars.dT                        # Sampling time
         try:
-            a = b  # no dT in Data TODO
             dT = curve_data[3]  # dT in Data array position
         except:
             dT = Pars.dT
+        # print(dT)
         modelting = Pars.viscomodel         # 1 - PLR, 2 - SLS, 3 - sPLR, 4 - elastic only
         hydrodragcorr = Pars.hydro.corr  # hydrodinamic drag correction
         Height = Pars.height
@@ -231,9 +231,10 @@ def tingsprocessingd1(Pars, curve_data):
             currentcurve = currentcurveM[index_select, :]
             curve_data[1] = currentcurve
             dT = dT*skip_data
-            curve_data[2] = dT
+            curve_data[3] = dT
 
-        if currentcurve[0, 0] > currentcurve[30, 0]:
+        checklength = int(currentcurve.shape[0]*0.05)
+        if currentcurve[0, 0] > currentcurve[checklength, 0]:
             Displ = -currentcurve[:, 0]+currentcurve[0, 0]
             # CurveDir = -1  # decreasing curve
         else:  # default case
@@ -308,6 +309,17 @@ def tingsprocessingd1(Pars, curve_data):
                 DFL_corrs = [slopeH, interceptH, speedcoefmT]
                 # print(DFL_corrs)
                 # plt.plot(Displ, DFLc)
+            if hydrotype == 3:  # for biomomentum
+                zero_level_length = checklength
+                zero_level_DFL = np.mean(DFLIn[startam:zero_level_length])
+                DFLT = DFLIn
+                slopeH = 0
+                interceptH = zero_level_DFL
+                speedcoefmT = 0
+                DFLc = DFLT-slopeH*Displ-interceptH
+                DFL_corrs = [slopeH, interceptH, speedcoefmT]
+                DFLAppr = DFLc[0:ApprLength]
+                # print(DFL_corrs)
         else:
             DFLc = DFLIn  # no correction
             DFLAppr = DFLc[0:ApprLength]
@@ -409,6 +421,7 @@ def tingsprocessingd1(Pars, curve_data):
         if hysterareasearch == 1:
             indstart = int(locationcpH)
             MaxInd = int(ApprLength-indstart)  # points in Approach indentation
+            indend = FullLength  # safety check
             for ala in range(indstart+MaxInd, FullLength):  # alternative search for indend based on Z value
                 if Displ[ala] < Displ[indstart]:
                     indend = ala
@@ -548,7 +561,7 @@ def tingsprocessingd1(Pars, curve_data):
                 # f = plt.figure(2)
                 # plt.plot(indentationfull, Forcefulln, indentationfull, Force_fitn) # plt.plot(indentationfull, Force_fitn)
 
-                parfit = np.asarray(fixedv, dtype=np.float)
+                parfit = np.asarray(fixedv, dtype=np.float64)
                 parfit[fixedp == 0] = fitTingpar
                 parfit[0] = parfit[0]*NF
                 parfit[2] = parfit[2]*NF
@@ -684,15 +697,16 @@ if __name__ == '__main__':
     # serach for Data in workspace
     import matplotlib.pyplot as plt
     from utils_ViscoIndent import load_AFM_data_pickle_short, curve_from_saved_pars
-    filename= 'D:/MailCloud/AFM_data/BrukerResolve/cytotoxicity/20211118_Ref52_ACR+NaOCL/control.0_000062.dat'
+    # filename= 'D:/MailCloud/AFM_data/BrukerResolve/cytotoxicity/20211118_Ref52_ACR+NaOCL/control.0_000062.dat'
     # Pars, Data, Results = load_AFM_data_pickle_short(filename)
     # Pars.HeightfromZ = 0
     # Pars.height = 1000
-    kk = 4
+    kk = 0
     curve_data = Data[kk]
     curve=curve_data[1]
     # plt.plot(curve[:,0], curve[:,1])
     Results2, curve_data, DFL_corrs = tingsprocessingd1(Pars, curve_data)
+    Data[kk][2] = DFL_corrs
     currentcurve3 = curve_from_saved_pars(Pars, Data[kk], Results.loc[kk, :])
     plt.plot(currentcurve3[:, 2], currentcurve3[:, 3])
     plt.plot(currentcurve3[:, 2], currentcurve3[:, 4])

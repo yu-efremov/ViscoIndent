@@ -32,7 +32,7 @@ from set_Pars_commongui import set_Pars
 from utils_ViscoIndent import save_AFM_data_pickle, \
     save_AFM_data_pickle_short, curve_from_saved_pars
 from selection_windows_common_gui import selection_win1
-from config import config as config
+from config import config as config  # biomomentum cells config
 
 
 def dicttolist(Dict):
@@ -70,12 +70,15 @@ class App(QMainWindow):
         if self.Data.shape[1] < 3:
             self.Data = np.insert(self.Data, 2, np.zeros((self.Data.shape[0])), axis=1)
         for kk in range(self.Pars.curve_range[0], self.Pars.curve_range[1]+1):
-            Results_temp, self.Data[kk][0:2], DFL_corrs = tingsprocessingd1(self.Pars, self.Data[kk][0:2])
-            self.Data[kk][2] = DFL_corrs  # TODO 2 is dT, move to 3?
+            if np.shape(self.Data[kk])[0]>=4:
+                Results_temp, self.Data[kk][0:4], DFL_corrs = tingsprocessingd1(self.Pars, self.Data[kk][0:4])
+            else:
+                Results_temp, self.Data[kk][0:2], DFL_corrs = tingsprocessingd1(self.Pars, self.Data[kk][0:2])
+            self.Data[kk][2] = DFL_corrs  # TODO 2 is dT, move to 3? no, 3 is dT
             self.Results.loc[kk, :] = Results_temp.loc[0, :]
 
     def button_save_click(self):
-        self.Pars.save_short = 1
+        # self.Pars.save_short = 1 # in config
         print('save start')
         if self.Pars.save_short == 0:
             filename = QFileDialog.getSaveFileName(self, 'Save File')[0]
@@ -97,6 +100,7 @@ class App(QMainWindow):
                 for ii in range(self.Data.shape[0]):
                     self.Data[ii][1] = self.Data[ii][1].astype('float32')  # reduces size 2x, fast enough
                 save_AFM_data_pickle(filename, self.Pars, self.Data, self.Results)
+
         elif self.Pars.save_short == 1:
             filename = self.Pars.filedir[0][:-3] + 'dat'
             if os.path.isfile(filename):
@@ -183,16 +187,26 @@ class App(QMainWindow):
                 self.Results.Pixel = self.Data[:, 0]  # remove nans
             else:
                 self.Results = Results
+        self.start_folder = config['start_folder']
         self.selection_win1.initUI()
 
     def initUI2(self):
+        # UI after the data selection
         # load config
-        self.supress_ROIquestion = config['supress_ROIquestion']
-        self.Pars.HeightfromZ = config['HeightfromZ']
-        self.Pars.ROIPars.ROImode = config['ROImode']
-        self.Pars.ROIPars.h_level = config['h_level']
+        if not hasattr(self, 'config') and not hasattr(self, 'loaded'):
+            self.config = config
+            self.supress_ROIquestion = self.config['supress_ROIquestion']
+            self.Pars.HeightfromZ = self.config['HeightfromZ']
+            self.Pars.ROIPars.ROImode = self.config['ROImode']
+            self.Pars.ROIPars.h_level = self.config['h_level']
+            self.Pars.save_short = self.config['save_short']
+            # for selpar in vars(self.config.ReplacePars):
+            #     print(selpar)
+            #     setattr(self.Pars, getattr(self.config.ReplacePars, selpar))
+            print('config loaded')
         
         if self.supress_ROIquestion in [0, 2]:
+            print('check_ROI')
             self.curveviewer()  # help against shutdown
             self.MAPdialog.initUI()
         else:
@@ -230,7 +244,7 @@ class App(QMainWindow):
         self.table_Res.setModel(self.model_Res)
 
         self.graphT = QComboBox()
-        self.graphT.addItems(['raw', 'elastic', 'viscoelastic'])
+        self.graphT.addItems(['raw', 'elastic', 'viscoelastic', 'versus time'])
         self.graphT.setCurrentIndex(2)
         self.graphT.currentIndexChanged.connect(self.changefigaxis)
 
@@ -351,6 +365,11 @@ class PlotCanvas(FigureCanvas):
             currentcurve3 = Data[kk][1]
         rawZ = currentcurve3[:, 0]
         rawDFL = currentcurve3[:, 1]
+        if np.shape(Data[kk])[0] >= 4:
+            time = np.linspace(0, np.shape(currentcurve3)[0], num=np.shape(currentcurve3)[0])*Data[kk][3]
+        else:
+            time = np.linspace(0, np.shape(currentcurve3)[0], num=np.shape(currentcurve3)[0])*Pars.dT
+
         if np.shape(currentcurve3)[1] > 4:
             ind_Hertz = currentcurve3[:, 2]
             force = currentcurve3[:, 3]
@@ -374,6 +393,14 @@ class PlotCanvas(FigureCanvas):
             ax.plot(ind_visco, fit_Hertz)
             if np.shape(currentcurve3)[1] > 5:
                 ax.plot(ind_visco, fit_visco)
+        elif Pars.graph == 'versus time':
+            if np.shape(currentcurve3)[1] < 4:
+               ax.plot(time, rawDFL)
+            elif np.shape(currentcurve3)[1] > 4:
+               ax.plot(time, force)
+               ax.plot(time, fit_Hertz)
+            if np.shape(currentcurve3)[1] > 5:
+               ax.plot(time, fit_visco) 
         else:
             ax.plot(currentcurve3[:, 0], currentcurve3[:, 1])
             # plt.plot will open new window

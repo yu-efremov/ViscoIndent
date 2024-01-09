@@ -10,6 +10,8 @@ import pandas as pd
 import seaborn as sns  # use boxplot, stripplot, swarmplot, violinplot, catplot
 import matplotlib.pyplot as plt
 import itertools
+from openpyxl import Workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
 
 from Pars_class import Pars_gen
 from file_import_qt5simple import file_import_dialog_qt5
@@ -50,13 +52,15 @@ for ngroup in range(ngroups):
         print(fname)
         Pars, Data, Results = load_AFM_data_pickle_short2(fname)
         if hasattr(Pars.ROIPars, 'reg_nums_all'):
-            reginds = Pars.ROIPars.reg_nums_all[[Pars.ROIPars.reg_nums_all != 0]]
+            # reginds = Pars.ROIPars.reg_nums_all[[Pars.ROIPars.reg_nums_all != 0]]
+            reginds = Pars.ROIPars.reg_nums_all[Pars.ROIPars.reg_nums_all != 0]
         else:
             reginds = 1
         reginds = reginds + counter
         Results['reginds'] = reginds
         counter = np.max(reginds)
-        ResultsAll = ResultsAll.append(Results, ignore_index=True)
+        # ResultsAll = ResultsAll.append(Results, ignore_index=True)
+        ResultsAll = pd.concat([ResultsAll, Results], axis=0, join='outer')
         counter2 = int(np.max(ResultsAll['reginds']))
     group_sizes.append(counter2-counterG)
     counterG = counter2
@@ -75,7 +79,8 @@ ResultsMean = ResultsMean.astype({'Name': str,
                                   'Height': np.float32})
 
 keyVs = ['EHertzBEC', 'E0BEC', 'EinfBEC', 'alpha_tauBEC']
-keyVs = ['EHertzBEC', 'Height']
+# keyVs = ['EHertzBEC', 'Height']
+keyVs = ['EHertzBEC']
 badinds=[]
 for keyV in keyVs:
     for ii in range(1, counter2+1):
@@ -120,5 +125,15 @@ ResultsMean[["group_name", "Up_mean"]].groupby("group_name").agg(['median', 'mea
 Res2 = ResultsMean[["group_name", "mean"]].groupby("group_name").agg(['median', 'mean', 'std'])
 
 #  filename = 'D:/MEGAsync/My materials/python/Ting_code/examples/Bruker_forcevolume_cells.dat'
-filenamexls = filenames[1]+'.xls'
-ResultsMean.to_excel(filenamexls)
+filenamexls = filenames[1]+'.xlsx'
+# ResultsMean.to_excel(filenamexls) # deprecated
+wb = Workbook()
+ws = wb.active
+
+for r in dataframe_to_rows(ResultsMean, index=True, header=True):
+    ws.append(r)
+
+for cell in ws['A'] + ws[1]:
+    cell.style = 'Pandas'
+
+wb.save(filenamexls)

@@ -1,6 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-# set of relaxation functions
+set of relaxation functions
+file contains equations for different relaxation functions (viscoelastic models)
+some functions have several names (e.g. 'springpot-spring-parallel2' = 'sPLR')
+list can be extended
+parameters of the functions are stored in "par" list
+names of the parameters are stored in "parnames" list
+currently functions with up to 5 parameters are included
+modellist:  list of all relaxation functions available
 """
 
 import numpy as np
@@ -12,7 +19,7 @@ import warnings
 from MLF import mlf
 
 
-def modellist():
+def modellist():  # list of all relaxation functions currently available
     modellist = ['elastic', 'KV', 'MW', 'SLS', 'SLS2', 'dSLS', 'springpot',
                  'springpot-spring-parallel', 'springpot-spring-parallel2',
                  'sPLR', 'springpot-dashpot-parallel', 'sPLReta',
@@ -232,18 +239,18 @@ def relaxation_function(par, model, Time):
         relfun = lambda E0, Einf, dTp, alpha, t: Einf + (E0 - Einf) / (1 + t / dTp) ** alpha
         Et = relfun(E0, Einf, dTp, alpha, Time)
     else:
-        print('relaxation function not recognized')
+        print('relaxation function is not recognized')
 
     return Et, eta0, parnames
 
 
 if __name__ == '__main__':
-
+    # view some relaxation function E(t) on a log-log scale
     # plt.figure
     Time = np.logspace(-5, 5, 100)
     Time = np.linspace(0, 1, 1000)
     # Et=relaxation_function([1,0.1,0.1,0.1,0.1], 'SLS2', Time)
     [Et, eta, parnames] = relaxation_function([1, 10, 1, 0.01, 0.1], 'dSLS', Time)
-    [Et, eta, parnames] = relaxation_function([2, 0.1, 1024], 'springpot-dashpot-serial', Time)
+    # [Et, eta, parnames] = relaxation_function([2, 0.1, 1024], 'springpot-dashpot-serial', Time)
     # [Et, eta, parnames] = relaxation_function([100, 0.5, 300, 20], 'fractionalSLS', Time)[0:2]
     plt.loglog(Time, Et)
