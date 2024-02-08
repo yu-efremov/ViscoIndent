@@ -92,17 +92,17 @@ def tingFC_constructor(Pars, indentationfull):
             dwell_points = 0
 
     # launch ting_numerical to construct force
-    [force, cradius, contact_time, t1_ndx2, Et] = ting_numerical(pars,
+    [force, cradius, contact_time, t1_ndx2, Et] = ting_numerical(Pars,
         Poisson, probe_size, dT, MaxInd, Height, modelting, probe_geom,
         indentationfull)[0:5]
 
     # add noise
-    force = force + np.random.normal(0, 0.01*noise*np.median(force), len(force))
+    force = force + np.random.normal(0, abs(0.01*noise*np.median(force)), len(force))
 
     # force for the extended indentation with non-contact region
     # forceL = np.pad(force, MaxInd - dwell_points, 'constant', constant_values=(0, 0))
-    forcePadL = np.zeros(MaxInd - dwell_points) + np.random.normal(0, 0.01*noise*np.median(force), MaxInd - dwell_points)
-    forcePadR = np.zeros(MaxInd - dwell_points) + np.random.normal(0, 0.01*noise*np.median(force), MaxInd - dwell_points)
+    forcePadL = np.zeros(MaxInd - dwell_points) + np.random.normal(0, abs(0.01*noise*np.median(force)), MaxInd - dwell_points)
+    forcePadR = np.zeros(MaxInd - dwell_points) + np.random.normal(0, abs(0.01*noise*np.median(force)), MaxInd - dwell_points)
     forceL = np.concatenate((forcePadL, force, forcePadR), axis=0)
 
     # add hydrodynamic drag
