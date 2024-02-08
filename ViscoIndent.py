@@ -154,6 +154,7 @@ class App(QMainWindow):
         # Pars['Vpars'] = np.array([1000, 0.8, 0, 20])
         Pars['noise'] = 0.0 # % noise level from median force
         Pars['hydrodrag'] = 0.000  # [nN*s/nm] coefficient of viscous drag
+        Pars['adhesion'] = 0.000
 
         IndPars = {}  # [yes/no; depth; speed; numpoimts; ramp/sin; dwell_time];
         IndPars['define_indentation'] = 1  # Pars['indpars'][0]

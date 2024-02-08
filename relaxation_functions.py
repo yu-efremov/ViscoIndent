@@ -20,7 +20,7 @@ from MLF import mlf
 
 
 def modellist():  # list of all relaxation functions currently available
-    modellist = ['elastic', 'KV', 'MW', 'SLS', 'SLS2', 'dSLS', 'springpot',
+    modellist = ['elastic', 'DMT', 'KV', 'MW', 'SLS', 'SLS2', 'dSLS', 'springpot',
                  'springpot-spring-parallel', 'springpot-spring-parallel2',
                  'sPLR', 'springpot-dashpot-parallel', 'sPLReta',
                  'springpot-spring-serial', 'springpot-spring-serial2',
@@ -43,7 +43,7 @@ def relaxation_function(par, model, Time):
     warnings.filterwarnings("ignore", message="invalid value encountered in multiply")
     warnings.filterwarnings("ignore", message="divide by zero encountered in true_divide")
 
-    if model == 'elastic':
+    if model == 'elastic' or model == 'DMT':
         parnames = ['E']
         E = par[0]
         Et = E*np.ones(Time.shape)
