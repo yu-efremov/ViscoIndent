@@ -363,7 +363,7 @@ class ItemEditorFactory(QItemEditorFactory):  # http://doc.qt.io/qt-5/qstyledite
         if userType == QVariant.Double:
             doubleSpinBox = QDoubleSpinBox(parent)
             doubleSpinBox.setDecimals(6)
-            doubleSpinBox.setMaximum(1000)  # The default maximum value is 99.99
+            doubleSpinBox.setMaximum(1e12)  # The default maximum value is 99.99
             return doubleSpinBox
         else:
             return super().createEditor(userType, parent)
