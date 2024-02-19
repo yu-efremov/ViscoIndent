@@ -703,7 +703,7 @@ def ARDF_import(Pars, Data = 'Data'):
     Data3 =[]
 
     for ij in range(Numcurves):
-        currentcurve = np.array(G.curves[ij], dtype=float).transpose()
+        currentcurve = np.array(G.curves[ij][0:2], dtype=float).transpose()
         currentcurve = currentcurve*1e9  # to nm
         currentcurve[:,1] = currentcurve[:,1]/Pars.InvOLS   # to nA
         # nPix.append(ij)
