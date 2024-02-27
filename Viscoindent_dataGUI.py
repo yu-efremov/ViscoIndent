@@ -385,24 +385,43 @@ class PlotCanvas(FigureCanvas):
         ax.set_title(str(kk))
         if Pars.graph == 'raw':
             ax.plot(rawZ, rawDFL)
+            ax.set_title('Raw data')  #TODO axes labels depends on data type
+            ax.set_xlabel('Raw Displacement, nm')
+            ax.set_ylabel('Raw deflection')
         elif Pars.graph == 'elastic' and np.shape(currentcurve3)[1] > 4:
             ax.plot(ind_Hertz, force)
             ax.plot(ind_Hertz, fit_Hertz)
+            ax.set_title('Elastic fit')
+            ax.set_xlabel('Indentation, nm')
+            ax.set_ylabel('Force, nN')
         elif Pars.graph == 'viscoelastic' and np.shape(currentcurve3)[1] > 4:
             ax.plot(ind_visco, force)
             ax.plot(ind_visco, fit_Hertz)
             if np.shape(currentcurve3)[1] > 5:
                 ax.plot(ind_visco, fit_visco)
+                ax.set_title('Elastic and viscoelastic fit')
+            ax.set_xlabel('Indentation, nm')
+            ax.set_ylabel('Force, nN')
         elif Pars.graph == 'versus time':
             if np.shape(currentcurve3)[1] < 4:
                ax.plot(time, rawDFL)
+               ax.set_title('Raw data vs time')  
+               ax.set_ylabel('Raw deflection')
             elif np.shape(currentcurve3)[1] > 4:
                ax.plot(time, force)
                ax.plot(time, fit_Hertz)
+               ax.set_title('Elastic fit vs time')  
+               ax.set_ylabel('Force, nN')
             if np.shape(currentcurve3)[1] > 5:
-               ax.plot(time, fit_visco) 
+               ax.plot(time, fit_visco)
+               ax.set_title('Elastic and viscoelastic fit vs time')  
+               ax.set_ylabel('Force, nN')
+            ax.set_xlabel('Time, s')
+            ax.set_ylabel('Raw deflection')
         else:
             ax.plot(currentcurve3[:, 0], currentcurve3[:, 1])
+            ax.set_title('Raw data')
+            ax.set_xlabel('Raw Displacement, nm')
             # plt.plot will open new window
         # if Pars.graph == 'Force versus Indentation':
         #     ax.plot(ind, force, 'r-')
@@ -411,6 +430,7 @@ class PlotCanvas(FigureCanvas):
         #     ax.plot(time, force, 'r-')
         #     ax.set_title('Force vs Time')
         self.draw()
+
 
 
 class TableModel(QtCore.QAbstractTableModel):
