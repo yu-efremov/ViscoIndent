@@ -181,7 +181,7 @@ def tingsprocessingd1(Pars, curve_data):
         elif modelprobe == 'cone' or modelprobe == 'pyramid':
             power = 2
             if modelprobe == 'cone':
-                K1 = 2/pi()*tan(Radius*pi/180)
+                K1 = 2/pi*tan(Radius*pi/180)
             elif modelprobe == 'pyramid':
                 K1 = 1.4906/2*tan(Radius*pi/180)  # Bilodeau, 1992
         elif modelprobe == 'cylinder':  # cylinder
