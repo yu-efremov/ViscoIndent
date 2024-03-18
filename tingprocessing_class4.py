@@ -195,24 +195,9 @@ def tingsprocessingd1(Pars, curve_data):
         # plt.plot(currentcurve[:,0], currentcurve[:,1])
         Npoints = currentcurve.shape[0]
 
-        if Npoints > 10000:
-            skip_data = 5
-            skip_data2 = 8
-        elif Npoints > 6000:
-            skip_data = 4
-            skip_data2 = 7
-        elif Npoints > 4000:
-            skip_data = 3
-            skip_data2 = 5
-        elif Npoints > 2000:
-            skip_data = 2
-            skip_data2 = 3
-        elif Npoints > 1500:
-            skip_data = 1
-            skip_data2 = 2
-        elif Npoints > 1000:
-            skip_data = 1
-            skip_data2 = 1
+        if Npoints>1000:
+            skip_data = np.floor(Npoints/1200).astype(int)
+            skip_data2 = np.floor(Npoints/600).astype(int)
         else:
             skip_data = 1
             skip_data2 = 1
@@ -698,7 +683,8 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     from utils_ViscoIndent import load_AFM_data_pickle_short, curve_from_saved_pars
     # filename= 'D:/MailCloud/AFM_data/BrukerResolve/cytotoxicity/20211118_Ref52_ACR+NaOCL/control.0_000062.dat'
-    # Pars, Data, Results = load_AFM_data_pickle_short(filename)
+    filename= 'examples/Bruker_forcevolume_cells3.dat'
+    Pars, Data, Results = load_AFM_data_pickle_short(filename)
     # Pars.HeightfromZ = 0
     # Pars.height = 1000
     kk = 0
@@ -706,9 +692,13 @@ if __name__ == '__main__':
     curve=curve_data[1]
     # plt.plot(curve[:,0], curve[:,1])
     Results2, curve_data, DFL_corrs = tingsprocessingd1(Pars, curve_data)
+    if Data.shape[1]<3:
+        Data = np.hstack((Data,np.zeros((Data.shape[0],1))))
     Data[kk][2] = DFL_corrs
     currentcurve3 = curve_from_saved_pars(Pars, Data[kk], Results.loc[kk, :])
     plt.plot(currentcurve3[:, 2], currentcurve3[:, 3])
-    plt.plot(currentcurve3[:, 2], currentcurve3[:, 4])
-    plt.plot(currentcurve3[:, 2], currentcurve3[:, 5])
+    if currentcurve3.shape[1]>4:
+        plt.plot(currentcurve3[:, 2], currentcurve3[:, 4])
+    if currentcurve3.shape[1]>5:
+        plt.plot(currentcurve3[:, 2], currentcurve3[:, 5])
 
