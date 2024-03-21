@@ -62,20 +62,31 @@ class App(QMainWindow):
         self.Pars.curve_range = np.array([first_curve, last_curve])
         # print(Pars.curve_range)
         # print(Pars)
+        
+    def check_pars(self):  #TODO add other checkpoints
+        check_results = 1
+        if np.isnan(self.Pars.probe_dimension):
+            QMessageBox.about(self, "Wrong probe dimensions", "Probe dimensions are not inserted")
+            check_results = 0
+        else:
+            pass
+        return check_results
 
     def button_launch_click(self):
         first_curve = int(self.first_curve.text())
         last_curve = int(self.last_curve.text())
         self.Pars.curve_range = np.array([first_curve, last_curve])
-        if self.Data.shape[1] < 3:
-            self.Data = np.insert(self.Data, 2, np.zeros((self.Data.shape[0])), axis=1)
-        for kk in range(self.Pars.curve_range[0], self.Pars.curve_range[1]+1):
-            if np.shape(self.Data[kk])[0]>=4:
+        self.check_results = self.check_pars()
+        if self.check_results == 1:
+            if self.Data.shape[1] < 4:
+                self.Data = np.insert(self.Data, 2, np.zeros((self.Data.shape[0])), axis=1)
+                self.Data = np.insert(self.Data, 3, np.zeros((self.Data.shape[0])), axis=1)
+            for kk in range(self.Pars.curve_range[0], self.Pars.curve_range[1]+1):
+                if self.Data[kk][3] == 0:
+                    self.Data[kk][3] = self.Pars.dT
                 Results_temp, self.Data[kk][0:4], DFL_corrs = tingsprocessingd1(self.Pars, self.Data[kk][0:4])
-            else:
-                Results_temp, self.Data[kk][0:2], DFL_corrs = tingsprocessingd1(self.Pars, self.Data[kk][0:2])
-            self.Data[kk][2] = DFL_corrs  # TODO 2 is dT, move to 3? no, 3 is dT
-            self.Results.loc[kk, :] = Results_temp.loc[0, :]
+                self.Data[kk][2] = DFL_corrs  # TODO 2 is dT, move to 3? no, 3 is dT
+                self.Results.loc[kk, :] = Results_temp.loc[0, :]
 
     def button_save_click(self):
         # self.Pars.save_short = 1 # in config
@@ -430,7 +441,6 @@ class PlotCanvas(FigureCanvas):
         #     ax.plot(time, force, 'r-')
         #     ax.set_title('Force vs Time')
         self.draw()
-
 
 
 class TableModel(QtCore.QAbstractTableModel):
