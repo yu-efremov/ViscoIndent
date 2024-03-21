@@ -54,8 +54,11 @@ class selection_win1(QMainWindow):
         self.btn_loadMicrotesterFC = QPushButton("Load Microtester data", self)
         self.btn_loadMicrotesterFC.clicked.connect(self.load_microtester)
 
-        self.btn_loadDAT = QPushButton("Load .dat (processed file)", self)
-        self.btn_loadDAT.clicked.connect(self.load_dat)
+        self.btn_loadDATshort = QPushButton("Load .dat (processed file for spm)", self)
+        self.btn_loadDATshort.clicked.connect(self.load_dat_short)
+
+        self.btn_loadDATfull = QPushButton("Load .dat (full processed file)", self)
+        self.btn_loadDATfull.clicked.connect(self.load_dat_full)
 
         self.btn_loadWorkspace = QPushButton("Load from workspace", self)
         self.btn_loadWorkspace.clicked.connect(self.load_workspace)
@@ -91,7 +94,8 @@ class selection_win1(QMainWindow):
         layoutA.addWidget(self.btn_loadBiomomentumFC)
         layoutB = QHBoxLayout()
         layoutA.addWidget(self.btn_loadMicrotesterFC)
-        layoutB.addWidget(self.btn_loadDAT)
+        layoutB.addWidget(self.btn_loadDATshort)
+        layoutB.addWidget(self.btn_loadDATfull)
         layoutB.addWidget(self.btn_loadWorkspace)
         layoutC = QHBoxLayout()
         layoutC.addWidget(self.btn_Exit)
@@ -313,14 +317,30 @@ class selection_win1(QMainWindow):
                 self.selection_win1_gui.initUI2()
 
 
-    def load_dat(self):
-        print('load dat')
+    def load_dat_short(self):
+        print('load dat short')
         options = QFileDialog.Options()
-        self.fileName, _ = QFileDialog.getOpenFileName(self, "Selecd .dat file", self.lookfolder, "Data Files (*.dat);;Python Files (*.py)", options=options)
+        self.fileName, _ = QFileDialog.getOpenFileName(self, "Selecd .dat file (for .spm file)", self.lookfolder, "Data Files (*.dat);;Python Files (*.py)", options=options)
 
         if self.fileName != "":
             # self.Pars, self.Data, self.Results = load_AFM_data_pickle(self.fileName)
             self.Pars, self.Data, self.Results = load_AFM_data_pickle_short(self.fileName)
+            if hasattr(self.selection_win1_gui, 'commongui'):
+                self.selection_win1_gui.loaded = 1
+                self.selection_win1_gui.Pars = self.Pars
+                self.selection_win1_gui.Data = self.Data
+                self.selection_win1_gui.Results = self.Results
+                self.selection_win1_gui.supress_ROIquestion = 1  # rewrited by config!!!
+                self.close()
+                self.selection_win1_gui.initUI2()
+
+    def load_dat_full(self):
+        print('load dat full')
+        options = QFileDialog.Options()
+        self.fileName, _ = QFileDialog.getOpenFileName(self, "Selecd .dat file", self.lookfolder, "Data Files (*.dat);;Python Files (*.py)", options=options)
+    
+        if self.fileName != "":
+            self.Pars, self.Data, self.Results = load_AFM_data_pickle(self.fileName)
             if hasattr(self.selection_win1_gui, 'commongui'):
                 self.selection_win1_gui.loaded = 1
                 self.selection_win1_gui.Pars = self.Pars
