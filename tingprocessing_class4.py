@@ -445,6 +445,8 @@ def tingsprocessingd1(Pars, curve_data):
             FitAppr = funHertzfitBEC(indentationfull, fHertzBEC[0], 0)
         else:
             FitAppr = funHertzfit(indentationfull, fHertz[0], 0)
+        FitAppr[0:locationcpH] = np.nan  # remove extra
+        FitAppr[ApprLength+1:] = np.nan  # remove extra
         warnings.simplefilter("default")
         # plt.plot(indentationfull,Forcefull1,indentationfull,FitAppr)
         currentcurve2 = np.c_[currentcurve, indentationfull, Forcefull1, FitAppr]
