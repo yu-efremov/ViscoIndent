@@ -92,7 +92,7 @@ def tingFC_constructor(Pars, indentationfull):
             dwell_points = 0
 
     # launch ting_numerical to construct force
-    [force, cradius, contact_time, t1_ndx2, Et] = ting_numerical(Pars,
+    [force, cradius, contact_time, t1_ndx2, Et] = ting_numerical(pars, Pars['adhesion'],
         Poisson, probe_size, dT, MaxInd, Height, modelting, probe_geom,
         indentationfull)[0:5]
 
