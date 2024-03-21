@@ -31,13 +31,13 @@ from bottom_effect_correction import bottom_effect_correction
 from relaxation_functions import relaxation_function
 
 
-def ting_numerical(Pars, Poisson, probe_size, dT, MaxInd, Height, modelting, probe_geom, indentationfull):
+def ting_numerical(par, adhesion, Poisson, probe_size, dT, MaxInd, Height, modelting, probe_geom, indentationfull):
     PointN = len(indentationfull)
     time = np.linspace(0, dT*(PointN-1), PointN)
 
 
     # Et construction
-    [Et, eta] = relaxation_function(Pars['Vpars'], modelting, time)[0:2]
+    [Et, eta] = relaxation_function(par, modelting, time)[0:2]
     # plt.plot(time, Et)
     # remove zero-time singularity if needed
     if np.isinf(Et[0]):
@@ -144,9 +144,8 @@ def ting_numerical(Pars, Poisson, probe_size, dT, MaxInd, Height, modelting, pro
         # ForceT[i] = K1 * (BEC[ijk]*np.trapz(Et[i-ndx]*ind2speed[ndx], time[ndx]))
         # ForceT[i] = K1 * (BEC[ijk]*np.trapz(Et[i:i-ijk-1:-1]*ind2speed[:ijk+1], dx=dT))
         ForceT[i] = K1 * (BEC[ijk]*np.trapz(Et[i:i-ijk-1:-1]*ind2speed[:ijk+1], dx=dT))
-    
     if modelting == 'DMT':
-        ForceT -= Pars['adhesion']
+        ForceT += adhesion;
     cntrad = cntrad[0:len(indentationfull)]
     contact_time = endofalgorithm2*dT
     # plt.plot(indentationfull,Force2)  # linestyle=':'
