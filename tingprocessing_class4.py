@@ -538,10 +538,10 @@ def tingsprocessingd1(Pars, curve_data):
                 # FixedparsNFtemp = np.array([[0, 0, 0], [0, 0, 0]], dtype=np.double)
                 if numfitpars > 0:
                     # x is indentationfull
-                    funTing = lambda parf, x: tingFCPWL3uni(parf, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, x)[0]
+                    funTing = lambda parf, x: tingFCPWL3uni(parf, 0, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, x)[0]
                     Force_fitn, fitTingpar, fitTingcov = fixedfit(funTing, par00, parboundsnp, Fixedpars, indentationfull, Forcefulln)
                 else:
-                    Force_fitn = tingFCPWL3uni(fixedv, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationfull)[0]
+                    Force_fitn = tingFCPWL3uni(fixedv, 0, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationfull)[0]
                     fitTingpar = []
                 # f = plt.figure(2)
                 # plt.plot(indentationfull, Forcefulln, indentationfull, Force_fitn) # plt.plot(indentationfull, Force_fitn)
@@ -553,7 +553,7 @@ def tingsprocessingd1(Pars, curve_data):
                 resid = Force_fitn - Forcefulln
                 resid = resid*NF
                 resnorm = np.linalg.norm(resid)
-                [Force_fit, crad_fit, contact_time] = tingFCPWL3uni(parfit, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationfull)[0:3]
+                [Force_fit, crad_fit, contact_time] = tingFCPWL3uni(parfit, 0, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationfull)[0:3]
                 RSq_Ting = r2_score(Forcefull, Force_fit)
                 AdjRSq_Ting = 1-(1-RSq_Ting)*(len(Forcefull)-1)/(len(Forcefull)-numfitpars-1)  # 1-(1-RSq)*(n-1)/(n-p-1)
                 Force_fit_arr[ii] = Force_fit
@@ -633,10 +633,10 @@ def tingsprocessingd1(Pars, curve_data):
                 Forcefulln = Forcefull/NF
                 warnings.simplefilter("ignore")
                 if numfitpars > 0:
-                    funTing = lambda parf, x: tingFCPWL3uni(parf, Poisson, Radius, dT, MaxInd, 0, modelting, modelprobe, x)[0]
+                    funTing = lambda parf, x: tingFCPWL3uni(parf, 0, Poisson, Radius, dT, MaxInd, 0, modelting, modelprobe, x)[0]
                     Force_fitn, fitTingpar, fitTingcov = fixedfit(funTing, par00, parboundsnp, Fixedpars, indentationfull, Forcefulln)
                 else:
-                    Force_fitn = tingFCPWL3uni(fixedv, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationfull)[0]
+                    Force_fitn = tingFCPWL3uni(fixedv, 0, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationfull)[0]
                     fitTingpar = []
 
                 warnings.simplefilter("default")
