@@ -135,7 +135,7 @@ def curve_from_saved_pars(Pars, cData, cResults):
     elif modelprobe == 'cone' or modelprobe == 'pyramid':
         power = 2
         if modelprobe == 'cone':
-            K1 = 2/np.pi()*np.tan(Radius*np.pi/180)
+            K1 = 2/np.pi*np.tan(Radius*np.pi/180)
         elif modelprobe == 'pyramid':
             K1 = 1.406/2*np.tan(Radius*np.pi/180)
     elif modelprobe == 'cylinder':
