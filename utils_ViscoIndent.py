@@ -12,12 +12,18 @@ import pickle
 from Pars_class import Pars_gen
 from make_Results import make_Results
 from import_AFM_data import Bruker_import
-from tingprocessing_class4 import locate_position, smoothM, HertzBEC, npmax
-from Ting_numerical import ting_numerical as tingFCPWL3uni
+from tingprocessing_class4 import locate_position, smoothM, HertzBEC, DMTBEC, npmax
+from Ting_numerical import ting_numerical
 import sys
 if not sys.warnoptions:
     import warnings
 
+def check_Pars(Pars):
+    if not hasattr(Pars, 'adhesion_model'):
+        Pars.adhesion_model = 'none'
+    if not hasattr(Pars, 'adhesion_region'):
+        Pars.adhesion_region = 'retraction'
+    return Pars        
 
 def save_AFM_data_pickle(filename, Pars, Data, Results):
     # saving complete dataset
@@ -101,12 +107,14 @@ def AFM_data_pickle_to_short(filename):
     save_AFM_data_pickle_short(filename, Pars, Data, Results)
 
 def curve_from_saved_pars(Pars, cData, cResults):
-    currentcurve3 = cData[1]
+    currentcurve3 = cData[1][:, 0:2]
     DFL_corrs = cData[2]
     cpHertz = cResults['cpHertz']
     Height = cResults['Height']
     EHertz = cResults['EHertz']
     EHertzBEC = cResults['EHertzBEC']
+    E_DMT = cResults['E_adhesion']
+    adhesion = cResults['adhesion']
 
     cpTing = cResults['cpTing']
     E0 = cResults['E0']
@@ -123,6 +131,10 @@ def curve_from_saved_pars(Pars, cData, cResults):
     Poisson = Pars.Poisson              # Poisson's ratio of the sample
     dT = Pars.dT                        # Sampling time
     modelting = Pars.viscomodel
+    
+    adhesion_model = Pars.adhesion_model  # none, DMT, JKR
+    adhesion_region = Pars.adhesion_region # 'approach' 'retraction' 'both'
+    adhesion_pars = [adhesion_model, adhesion_region, adhesion]
     # hydrodragcorr = Pars.hydro.corr # hydrodinamic drag correction
     # try:
     #     Fixedpars = Pars.fixed_values
@@ -168,27 +180,39 @@ def curve_from_saved_pars(Pars, cData, cResults):
     funHertzfit = lambda ind, a, b: HertzBEC([a, b], K1, Poisson,
                                              Radius, power, 0, np.nan,
                                              modelprobe, ind)
+    funDMTfit = lambda ind, a, b, c: DMTBEC([a, b, c], K1, Poisson, 
+                                            Radius, power, 0, np.nan, 
+                                            modelprobe, ind)
 
     warnings.simplefilter("ignore")
 
     if EHertz > 0:
         FitAppr = funHertzfit(indentationfull, EHertz, 0)
+        FitDMTBEC = funDMTfit(indentationfull, E_DMT, 0, adhesion)
+        # plt.plot(indentationfull, DFLc)
+        # plt.plot(indentationfull, FitAppr)
+        # plt.plot(indentationfull, FitDMTBEC)
 
         if EHertzBEC > 0:
             funHertzfitBEC = lambda ind, a, b: HertzBEC([a, b], K1, Poisson,
                                                         Radius, power, Height,
                                                         np.nan, modelprobe, ind)
+            funDMTfit = lambda ind, a, b, c: DMTBEC([a, b, c], K1, Poisson, 
+                                                    Radius, power, 0, np.nan, 
+                                                    modelprobe, ind)
             FitApprBEC = funHertzfitBEC(indentationfull, EHertzBEC, 0)
+            FitDMTBEC = funDMTfit(indentationfull, E_DMT, 0, adhesion)
             # plt.plot(Displ, rawDFL)
-            # #plt.plot(indentationfull)
+            # plt.plot(indentationfull)
             # plt.plot(indentationfull, Forcec)
             # plt.plot(indentationfull, FitApprBEC)
+            # plt.plot(indentationfull, FitDMTBEC)
             # plt.plot(currentcurve3[:, 2], currentcurve3[:, 4])
-        elif EHertzBEC == 0 and EHertz > 0:
+        elif (EHertzBEC == 0 or np.isnan(EHertzBEC)) and EHertz > 0:
             FitApprBEC = FitAppr
         else:
             FitApprBEC = np.nan*indentationfull
-        currentcurve3 = np.c_[currentcurve3, indentationfull, Forcec, FitApprBEC]
+        currentcurve3 = np.c_[currentcurve3, indentationfull, Forcec, FitApprBEC, FitDMTBEC]
 
 
 
@@ -206,7 +230,7 @@ def curve_from_saved_pars(Pars, cData, cResults):
                 break
         indentationTing = indentationfullTing[locationcpTing+1:indend]
         indentationTing[indentationTing<0] = 0
-        Force_fitT = tingFCPWL3uni(parf, Poisson, Radius, dT, MaxInd, 0, modelting, modelprobe, indentationTing)[0]
+        Force_fitT = ting_numerical(parf, adhesion_pars, Poisson, Radius, dT, MaxInd, 0, modelting, modelprobe, indentationTing)[0]
         # plt.plot(indentationTing, Force_fitT)
         # plt.plot(indentationfullTing, Forcec)
 
@@ -224,11 +248,11 @@ def curve_from_saved_pars(Pars, cData, cResults):
                     break
             indentationTing = indentationfullTing[locationcpTing+1:indend]
             indentationTing[indentationTing<0] = 0
-            Force_fitTBEC = tingFCPWL3uni(parf, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationTing)[0]
+            Force_fitTBEC = ting_numerical(parf, adhesion_pars, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationTing)[0]
             # plt.plot(indentationTing, Force_fitT)
             # plt.plot(currentcurve3[:, 2]-(cpTing-cpHertz), currentcurve3[:, 5])
             # plt.plot(indentationfullTing, Forcec)
-        elif E0BEC == 0 and E0 > 0:
+        elif (E0BEC == 0 or np.isnan(E0BEC)) and E0 > 0:
             Force_fitTBEC = Force_fitT
         Force_fitTBEC2 = np.full(np.shape(Forcec), np.nan)
         Force_fitTBEC2[locationcpTing+1:locationcpTing+1+len(Force_fitTBEC)] = Force_fitTBEC
@@ -239,6 +263,7 @@ def curve_from_saved_pars(Pars, cData, cResults):
     # currentcurve3 = np.c_[currentcurve3, indentationfull, Forcec, FitApprBEC, Force_fitTBEC, FitAppr, Force_fitT]
 
     warnings.simplefilter("default")
+    # print(currentcurve3)
     return currentcurve3
 
 
@@ -251,8 +276,10 @@ if __name__ == '__main__':
     # Pars, Data, Results = load_AFM_data_pickle(filename)
     # Pars, Data, Results = load_AFM_data_pickle_short(filename)
     # Pars, Data, Results = save_AFM_data_pickle_short(filename, Pars, Data, Results)
-    filename= 'D:/MailCloud/AFM_data/BrukerResolve/cytotoxicity/20211118_Ref52_ACR+NaOCL/control.0_000062.dat'
-    Pars, Data, Results = load_AFM_data_pickle_short(filename)
-    currentcurve3 = curve_from_saved_pars(Pars, Data[0], Results.loc[0, :])
+    # filename= 'D:/MailCloud/AFM_data/BrukerResolve/cytotoxicity/20211118_Ref52_ACR+NaOCL/control.0_000062.dat'
+    # Pars, Data, Results = load_AFM_data_pickle_short(filename)
+    kk=3
+    currentcurve3 = curve_from_saved_pars(Pars, Data[kk], Results.loc[kk, :])
     plt.plot(currentcurve3[:, 2], currentcurve3[:, 3])
+    plt.plot(currentcurve3[:, 2], currentcurve3[:, 4])
     plt.plot(currentcurve3[:, 2], currentcurve3[:, 5])

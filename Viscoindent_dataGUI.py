@@ -15,6 +15,8 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, \
 from PyQt5.QtCore import Qt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+
 from matplotlib.figure import Figure
 # import matplotlib.pyplot as plt
 import numpy as np
@@ -255,7 +257,7 @@ class App(QMainWindow):
         self.table_Res.setModel(self.model_Res)
 
         self.graphT = QComboBox()
-        self.graphT.addItems(['raw', 'elastic', 'viscoelastic', 'versus time'])
+        self.graphT.addItems(['raw', 'elastic', 'adhesion', 'viscoelastic', 'versus time'])
         self.graphT.setCurrentIndex(2)
         self.graphT.currentIndexChanged.connect(self.changefigaxis)
 
@@ -269,6 +271,7 @@ class App(QMainWindow):
         self.Pars.kk = 0
         self.read_data()
         self.m = PlotCanvas(self, self.Pars, self.Data, width=5, height=4)
+        self.toolbar = NavigationToolbar(self.m, self)
         self.curvedata = PlotCanvas.plot(self.m, self.Pars, self.Data, self.Results)
 
         button_launch = QPushButton('Start processing', self)
@@ -319,6 +322,7 @@ class App(QMainWindow):
         layoutM.addLayout(layout2)
 
         layout3.addWidget(self.graphT)
+        layout3.addWidget(self.toolbar)
         layout3.addWidget(self.m)
         layout3.addWidget(self.slider)
 
@@ -373,7 +377,10 @@ class PlotCanvas(FigureCanvas):
         if hasattr(Pars, 'save_short') and Pars.save_short == 1 and np.shape(Data)[1] >= 3 and type(Data[kk][2]) is list:
             currentcurve3 = curve_from_saved_pars(Pars, Data[kk], Results.loc[kk, :])
         else:
-            currentcurve3 = Data[kk][1]
+            if np.shape(Data)[1] >= 3 and type(Data[kk][2]) is list:
+                currentcurve3 = curve_from_saved_pars(Pars, Data[kk], Results.loc[kk, :]) # for adhesion
+            else:
+                currentcurve3 = Data[kk][1]
         rawZ = currentcurve3[:, 0]
         rawDFL = currentcurve3[:, 1]
         if np.shape(Data[kk])[0] >= 4:
@@ -385,11 +392,14 @@ class PlotCanvas(FigureCanvas):
             ind_Hertz = currentcurve3[:, 2]
             force = currentcurve3[:, 3]
             fit_Hertz = currentcurve3[:, 4]
+            # fit_adhesion = currentcurve3[:, 5]
             ind_visco = ind_Hertz
             fit_visco = np.nan*ind_visco
-        if np.shape(currentcurve3)[1] > 5 and ~np.isnan(cResults['cpTing']):
+        if np.shape(currentcurve3)[1] > 5:
+            fit_adhesion = currentcurve3[:, 5]
+        if np.shape(currentcurve3)[1] > 6 and ~np.isnan(cResults['cpTing']):
             ind_visco = ind_Hertz - (cResults['cpTing']-cResults['cpHertz'])
-            fit_visco = currentcurve3[:, 5]
+            fit_visco = currentcurve3[:, 6]
 
         ax = self.axes
         ax.clear()
@@ -429,6 +439,14 @@ class PlotCanvas(FigureCanvas):
                ax.set_ylabel('Force, nN')
             ax.set_xlabel('Time, s')
             ax.set_ylabel('Raw deflection')
+        elif Pars.graph == 'adhesion' and np.shape(currentcurve3)[1] > 5:
+            ax.plot(ind_Hertz, force)
+            ax.plot(ind_Hertz, fit_Hertz)
+            # if not np.nanmax(fit_adhesion)>0:
+            ax.plot(ind_Hertz, fit_adhesion)
+            ax.set_title('Adhesion fit')
+            ax.set_xlabel('Indentation, nm')
+            ax.set_ylabel('Force, nN')
         else:
             ax.plot(currentcurve3[:, 0], currentcurve3[:, 1])
             ax.set_title('Raw data')

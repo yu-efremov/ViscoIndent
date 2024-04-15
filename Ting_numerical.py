@@ -31,10 +31,9 @@ from bottom_effect_correction import bottom_effect_correction
 from relaxation_functions import relaxation_function
 
 
-def ting_numerical(par, adhesion, Poisson, probe_size, dT, MaxInd, Height, modelting, probe_geom, indentationfull):
+def ting_numerical(par, adhesion_pars, Poisson, probe_size, dT, MaxInd, Height, modelting, probe_geom, indentationfull):
     PointN = len(indentationfull)
     time = np.linspace(0, dT*(PointN-1), PointN)
-
 
     # Et construction
     [Et, eta] = relaxation_function(par, modelting, time)[0:2]
@@ -44,6 +43,10 @@ def ting_numerical(par, adhesion, Poisson, probe_size, dT, MaxInd, Height, model
         Et[0] = 2*Et[1]
     if np.isnan(Et[0]):
         Et[0] = Et[1]+(Et[1]-Et[2])
+        
+    adhesion_model = adhesion_pars[0]
+    adhesion_region = adhesion_pars[1]
+    adhesion_force = adhesion_pars[2]
 
     if Height > 0:  # bottom effect correction
         [BEC, BECspeed] = bottom_effect_correction(Poisson, probe_size, Height, probe_geom, indentationfull)
@@ -144,8 +147,11 @@ def ting_numerical(par, adhesion, Poisson, probe_size, dT, MaxInd, Height, model
         # ForceT[i] = K1 * (BEC[ijk]*np.trapz(Et[i-ndx]*ind2speed[ndx], time[ndx]))
         # ForceT[i] = K1 * (BEC[ijk]*np.trapz(Et[i:i-ijk-1:-1]*ind2speed[:ijk+1], dx=dT))
         ForceT[i] = K1 * (BEC[ijk]*np.trapz(Et[i:i-ijk-1:-1]*ind2speed[:ijk+1], dx=dT))
-    if modelting == 'DMT':
-        ForceT += adhesion;
+    if adhesion_model == 'DMT':
+        if adhesion_region  == 'approach' or adhesion_region  == 'both':
+            ForceT[:MaxInd] += adhesion_force
+        if adhesion_region  == 'retraction' or adhesion_region  == 'both':
+            ForceT[MaxInd:endofalgorithm2] += adhesion_force
     cntrad = cntrad[0:len(indentationfull)]
     contact_time = endofalgorithm2*dT
     # plt.plot(indentationfull,Force2)  # linestyle=':'

@@ -12,8 +12,6 @@ MATLAB Central File Exchange. Retrieved September 1, 2021.
 This version of the code is not fully tested, and there might be some problems 
 since the ARDF file protocol is proprietary and may change
 Reads and imports Asylum Research ARDF files to Python structures for force curve analysis.
-2023.01: modified for new ARDF files
-
 """
 
 import numpy as np
@@ -82,13 +80,9 @@ def readTOC(fid, address, ttype):
         toc.pntText = []
     elif toc.sizeEntry == 40:
         # VOFF
-        typecheck = 'VOFF'
         toc.pntCounter = []
         toc.linCounter = []
         toc.linPointer = []
-        # IDAT  #TODO test for new files
-        toc.data = []
-        sizeRead = int((toc.sizeEntry - 16) / 4)
     else:
         # IDAT
         toc.data = []
@@ -113,17 +107,14 @@ def readTOC(fid, address, ttype):
             lastPointer = struct.unpack('i', fid.read(4))[0]
             lastPointer = struct.unpack('i', fid.read(4))[0]  # 2 times
         elif toc.sizeEntry == 40:
-            if typeEntry == 'VOFF':
-                # VOFF
-                lastPntCount = struct.unpack('i', fid.read(4))[0]  # fread(fid,1,'uint32');
-                lastLinCount = struct.unpack('i', fid.read(4))[0]  # read(fid,1,'uint32');
-                dum = struct.unpack('i', fid.read(4))[0]  # fread(fid,1,'uint64');
-                dum = struct.unpack('i', fid.read(4))[0]  # fread(fid,1,'uint64');
-                lastLinPoint = struct.unpack('i', fid.read(4))[0]  # fread(fid,1,'uint64');
-                dum = struct.unpack('i', fid.read(4))[0]  # fread(fid,1,'uint64');
-                # dum = struct.unpack('i', fid.read(4))[0]
-            elif typeEntry == 'IDAT':
-                lastData = struct.unpack('f'*sizeRead, fid.read(4*sizeRead))  # TODO check;
+            # VOFF
+            lastPntCount = struct.unpack('i', fid.read(4))[0]  # fread(fid,1,'uint32');
+            lastLinCount = struct.unpack('i', fid.read(4))[0]  # read(fid,1,'uint32');
+            dum = struct.unpack('i', fid.read(4))[0]  # fread(fid,1,'uint64');
+            dum = struct.unpack('i', fid.read(4))[0]  # fread(fid,1,'uint64');
+            lastLinPoint = struct.unpack('i', fid.read(4))[0]  # fread(fid,1,'uint64');
+            dum = struct.unpack('i', fid.read(4))[0]  # fread(fid,1,'uint64');
+            # dum = struct.unpack('i', fid.read(4))[0]
         else:
             # IDAT
             lastData = struct.unpack('f'*sizeRead, fid.read(4*sizeRead))  # fread(fid, sizeRead, 'single');
@@ -144,9 +135,8 @@ def readTOC(fid, address, ttype):
             # toc.idxText = [toc.idxText, lastIndex]
             toc.pntText.append(lastPointer)
 
-        elif typeEntry == 'IDAT':  #TODO check
+        elif typeEntry == 'IDAT':
             toc.data.append(lastData)
-            
         elif typeEntry == 'VOFF':
             toc.pntCounter.append(lastPntCount)
             toc.linCounter.append(lastLinCount)
@@ -713,14 +703,14 @@ def ARDF_import(Pars, Data = 'Data'):
     Data3 =[]
 
     for ij in range(Numcurves):
-        currentcurve = np.array(G.curves[ij][0:2], dtype=float).transpose()
+        currentcurve = np.array(G.curves[ij], dtype=float).transpose()
         currentcurve = currentcurve*1e9  # to nm
         currentcurve[:,1] = currentcurve[:,1]/Pars.InvOLS   # to nA
         # nPix.append(ij)
         # Data.append(currentcurve)
         Data3.append([ij, currentcurve])
 
-    Data3 = np.asarray(Data3, dtype=object)
+    Data3 = np.asarray(Data3)
     # Data = np.asarray([nPix, Data])
     # Data = Data.transpose()
 
@@ -736,7 +726,7 @@ if __name__ == '__main__':
     from file_import_qt5simple import file_import_dialog_qt5
     import_opt = 'single'  # single, 2 - multi
     file_types = '*.ARDF'
-    start_folder = 'D:\MailCloud\AFM_data\asylum\gels\printed_gels\180119_printdropsinverted_CSC38_9A'
+    start_folder = ''
     filename = file_import_dialog_qt5(import_opt=import_opt, start_folder=start_folder) 
     Pars = Pars_gen()
     Pars.filedir.append(filename)

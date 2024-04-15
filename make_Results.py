@@ -16,7 +16,7 @@ def make_Results(testlen):
                                     'AdjRsq', 'contact_timeH', 'EHertzBEC',
                                     'E0', 'Einf', 'alpha_tau', 'contact_timeT',
                                     'Freq', 'Estor', 'Eloss', 'E0BEC',
-                                    'EinfBEC', 'alpha_tauBEC',
+                                    'EinfBEC', 'alpha_tauBEC', 'E_adhesion', 'adhesion',
                                     'comment'], index=range(testlen))
     Results = Results.astype({'Name': str,
                               'Pixel': object,
@@ -45,6 +45,8 @@ def make_Results(testlen):
                               'E0BEC': np.float32,
                               'EinfBEC': np.float32,
                               'alpha_tauBEC': np.float32,
+                              'E_adhesion': np.float32,
+                              'adhesion': np.float32,
                               'comment': str})
     return Results
 

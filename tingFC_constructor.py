@@ -32,6 +32,10 @@ def tingFC_constructor(Pars, indentationfull):
     pars = Pars['Vpars']  # relaxation function parameters
     noise = Pars['noise']  # % noise level from median force
     hydrodrag = Pars['hydrodrag']  # [nN*s/nm] coefficient of viscous drag
+    adhesion_model = Pars['adhesion_model']  # none, DMT, JKR
+    adhesion_region = Pars['adhesion_region'] # 'approach' 'retraction' 'both'
+    adhesion = Pars['adhesion']  # max adhesion force
+    adhesion_pars = [adhesion_model, adhesion_region, -adhesion]
 
     try:
         indpars = Pars['indpars']
@@ -92,7 +96,7 @@ def tingFC_constructor(Pars, indentationfull):
             dwell_points = 0
 
     # launch ting_numerical to construct force
-    [force, cradius, contact_time, t1_ndx2, Et] = ting_numerical(pars, Pars['adhesion'],
+    [force, cradius, contact_time, t1_ndx2, Et] = ting_numerical(pars, adhesion_pars,
         Poisson, probe_size, dT, MaxInd, Height, modelting, probe_geom,
         indentationfull)[0:5]
 

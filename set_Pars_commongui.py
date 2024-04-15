@@ -87,12 +87,25 @@ class set_Pars(QMainWindow):
         self.setWindowTitle('Modify processing parameters')
 
         self.labelSample = QLabel('Sample')
-        self.label_models = QLabel('Model')
+        self.label_models = QLabel('Viscoelastic model')
         self.vmodels = ['elastic', 'SLS', 'sPLR', 'sPLReta', 'sPLRetatest']
         self.cb_models = QComboBox()
         self.cb_models.addItems(self.vmodels)
         # self.cb_models.currentIndexChanged.connect(self.update_Pars)
         self.cb_models.currentIndexChanged.connect(self.changeviscomodel)
+        
+        self.label_adhmodels = QLabel('Model for adhesion')
+        self.adhmodels = ['none', 'DMT', 'JKR']
+        self.cb_adhmodels = QComboBox()
+        self.cb_adhmodels.addItems(self.adhmodels)
+        self.cb_adhmodels.currentIndexChanged.connect(self.changeadhesionmodel)
+        
+        self.label_adhregions = QLabel('Region for adhesion')
+        self.adhregions = ['approach', 'retraction', 'both']
+        self.cb_adhregions = QComboBox()
+        self.cb_adhregions.addItems(self.adhregions)
+        self.cb_adhregions.currentIndexChanged.connect(self.changeadhesionregion)  
+        
         self.label_Poisson = QLabel("Poisson's ratio")
         self.le_Poisson = QLineEdit(self)
         # self.le_Poisson.setText(str(self.Pars.Poisson))
@@ -119,10 +132,7 @@ class set_Pars(QMainWindow):
         # self.fixpars_box3.stateChanged.connect(self.update_Pars)
 
         self.labelOptions = QLabel('Processing options')
-        self.downsampling_label = QLabel('Downsampling')
-        self.downsampling_types = ['off', 'moderate', 'strong']
-        self.cb_downsampling_types = QComboBox()
-        self.cb_downsampling_types.addItems(self.downsampling_types)
+
         self.hydro_box = QCheckBox('Hydrodynamic correction', self)
         # self.hydro_box.toggle()
         # self.hydro_box.stateChanged.connect(self.update_Pars)
@@ -189,10 +199,16 @@ class set_Pars(QMainWindow):
 
         layoutB = QVBoxLayout()
         layoutBA = QHBoxLayout()
+        layoutBA1 = QHBoxLayout()
+        layoutBA2 = QHBoxLayout()
         layoutBB = QHBoxLayout()
         layoutBC = QHBoxLayout()
         layoutBA.addWidget(self.label_models)
         layoutBA.addWidget(self.cb_models)
+        layoutBA1.addWidget(self.label_adhmodels)
+        layoutBA1.addWidget(self.cb_adhmodels)
+        layoutBA2.addWidget(self.label_adhregions)
+        layoutBA2.addWidget(self.cb_adhregions)
         layoutBB.addWidget(self.label_Poisson)
         layoutBB.addWidget(self.le_Poisson)
         layoutBC.addWidget(self.fixpars_label)
@@ -202,6 +218,8 @@ class set_Pars(QMainWindow):
 
         layoutB.addWidget(self.labelSample)
         layoutB.addLayout(layoutBA)
+        layoutB.addLayout(layoutBA1)
+        layoutB.addLayout(layoutBA2)
         layoutB.addLayout(layoutBB)
         layoutB.addWidget(self.table3)
         layoutB.addLayout(layoutBC)
@@ -219,12 +237,8 @@ class set_Pars(QMainWindow):
         layoutCB.addWidget(self.le_depth_start)
         layoutCB.addWidget(self.labelupperlimit)
         layoutCB.addWidget(self.le_depth_end)
-        layoutDS = QHBoxLayout()
-        layoutDS.addWidget(self.downsampling_label)
-        layoutDS.addWidget(self.cb_downsampling_types)
 
         layoutC.addWidget(self.labelOptions)
-        layoutC.addLayout(layoutDS)
         layoutC.addWidget(self.hydro_box)
         layoutC.addLayout(layoutCA)
         layoutC.addLayout(layoutCA2)
@@ -247,6 +261,8 @@ class set_Pars(QMainWindow):
         widget.setLayout(layoutM)
         self.initial_check_fill()
         self.changeviscomodel()
+        self.changeadhesionmodel()
+        self.changeadhesionregion()
         self.setCentralWidget(widget)
         self.show()
         self.activateWindow()
@@ -282,6 +298,12 @@ class set_Pars(QMainWindow):
         self.le_Poisson.setText(str(self.Pars.Poisson))
         self.cb_models_ndx = self.vmodels.index(self.Pars.viscomodel)
         self.cb_models.setCurrentIndex(self.cb_models_ndx)
+        if hasattr(self.Pars, 'adhesion_model'):
+            self.cb_adhmodels_ndx = self.adhmodels.index(self.Pars.adhesion_model)
+            self.cb_adhmodels.setCurrentIndex(self.cb_adhmodels_ndx)
+        if hasattr(self.Pars, 'adhesion_region'):
+            self.cb_adhregions_ndx = self.adhregions.index(self.Pars.adhesion_region)
+            self.cb_adhregions.setCurrentIndex(self.cb_adhregions_ndx)            
         if not hasattr(self.Pars, 'fixed_values'):
             self.Pars.fixed_values = np.array([[0, 0, 0], [0, 0, 0]], dtype=float)  # complex
         self.fixedinds = np.array(self.Pars.fixed_values[0], dtype=int)
@@ -329,10 +351,6 @@ class set_Pars(QMainWindow):
             self.Pars.depth_end = 95
         self.le_depth_start.setText(str(self.Pars.depth_start))
         self.le_depth_end.setText(str(self.Pars.depth_end))
-        
-        if not hasattr(self.Pars, 'downsampling'):
-            self.Pars.downsampling = 0
-        self.cb_downsampling_types.setCurrentIndex(self.Pars.downsampling)        
 
     def update_Pars(self):
         self.changeviscomodel()
@@ -343,6 +361,8 @@ class set_Pars(QMainWindow):
         self.Pars.dT = float(self.le_dT.text())
         self.Pars.Poisson = float(self.le_Poisson.text())
         self.Pars.viscomodel = str(self.cb_models.currentText())
+        self.Pars.adhesion_model = str(self.cb_adhmodels.currentText())
+        self.Pars.adhesion_region = str(self.cb_adhregions.currentText())
         model3 = self.table3.model()  # viscoelastic parameters
         vpars = []
         for row in range(3):
@@ -386,7 +406,6 @@ class set_Pars(QMainWindow):
             self.Pars.cp_adjust = 1
         else:
             self.Pars.cp_adjust = 0
-        self.Pars.downsampling = self.cb_downsampling_types.currentIndex()
         self.Pars.depth_start = float(self.le_depth_start.text())
         self.Pars.depth_end = float(self.le_depth_end.text())
         # print (self.Pars.probe_shape)
@@ -429,6 +448,12 @@ class set_Pars(QMainWindow):
             self.VmodelImage.setPixmap(pixmap2)
         except:
             print('image for the viscomodel does not exist')
+
+    def changeadhesionmodel(self):
+        self.adhmodel = str(self.cb_adhmodels.currentText())
+
+    def changeadhesionregion(self):
+        self.adhmodel = str(self.cb_adhregions.currentText())
 
     def closeEvent(self, event):
         self.update_Pars()

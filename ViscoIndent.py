@@ -154,6 +154,8 @@ class App(QMainWindow):
         # Pars['Vpars'] = np.array([1000, 0.8, 0, 20])
         Pars['noise'] = 0.0 # % noise level from median force
         Pars['hydrodrag'] = 0.000  # [nN*s/nm] coefficient of viscous drag
+        Pars['adhesion_model'] = 'none'
+        Pars['adhesion_region'] = 'retraction'
         Pars['adhesion'] = 0.000
 
         IndPars = {}  # [yes/no; depth; speed; numpoimts; ramp/sin; dwell_time];
@@ -204,6 +206,20 @@ class App(QMainWindow):
         self.cbDel2.currentIndexChanged.connect(self.changeviscomodel)
         self.table.setIndexWidget(indx2, self.cbDel2)
         self.table.setRowHidden(3, True)
+
+        indx3 = self.table.model().index(8, 1)
+        pix3 = QPersistentModelIndex(indx3)
+        self.cbDel3 = QComboBox()
+        self.cbDel3.currentIndexChanged[str].connect(lambda txt, pix3=pix3: self.table.model().setData(QModelIndex(pix3), txt, 0))
+        self.cbDel3.addItems(['none', 'DMT', 'JKR'])  # or make a list
+        self.table.setIndexWidget(indx3, self.cbDel3)
+        
+        indx4 = self.table.model().index(9, 1)
+        pix4 = QPersistentModelIndex(indx4)
+        self.cbDel4 = QComboBox()
+        self.cbDel4.currentIndexChanged[str].connect(lambda txt, pix4=pix4: self.table.model().setData(QModelIndex(pix4), txt, 0))
+        self.cbDel4.addItems(['approach', 'retraction', 'both'])
+        self.table.setIndexWidget(indx4, self.cbDel4)
 
         self.table2 = QtWidgets.QTableView()
         self.model2 = TableModel(listInd)
@@ -274,6 +290,8 @@ class App(QMainWindow):
         self.activateWindow()
 
     def closeEvent(self, event):
+        global Pars
+        Pars = self.ParsCur
         QApplication.quit()
 
 

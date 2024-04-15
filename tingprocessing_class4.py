@@ -17,7 +17,7 @@ from math import tan
 # import pandas as pd
 
 from bottom_effect_correction import bottom_effect_correction
-from Ting_numerical import ting_numerical as tingFCPWL3uni
+from Ting_numerical import ting_numerical
 from timetofreqspectrumFun import timetofreqspectrumFun
 from make_Results import make_Results
 from fixedfit import fixedfit
@@ -98,6 +98,27 @@ def HertzBEC(h, K1, Poisson, Radius, power, Height, level0, modelprobe, ind):
         # print('case3')
     return Force  # , BEC
 
+def DMTBEC(h, K1, Poisson, Radius, power, Height, level0, modelprobe, ind):
+    """ both EHertz and contact point are fitted
+    h[0] is EHertz
+    h[1] is contact point, indentation position
+    h[2] is the adhesion
+    level0 shoul be for used ind relative surfZ
+    only for sphere"""
+    if np.isnan(level0):
+        if Height > 0: #BEC for the purely elastic case
+            BEC = bottom_effect_correction(Poisson, Radius, Height, modelprobe, ind-h[1])[0]
+            # print('case1')
+        else:
+            BEC = np.ones(len(ind))
+            # print('case2')
+        Force = abs(K1*h[0]*(ind-h[1])**(power)**BEC) + h[2]
+    else:
+        BEC = bottom_effect_correction(Poisson, Radius, level0-h[1], modelprobe, ind-h[1])[0]
+        Force = abs(K1*h[0]*(ind-h[1])**(power)**BEC) + h[2]
+        # print('case3')
+    return Force
+
 
 def locate_position(pointV, arraydata):
     location = 0
@@ -116,6 +137,7 @@ def tingsprocessingd1(Pars, curve_data):
     # contact_points = [0, 0, 0]
     # test = 1
     # if test == 1:
+    DFL_corrs = [0, 0, 0]
     try:
         # kk = 0
         Results = make_Results(1)
@@ -136,6 +158,11 @@ def tingsprocessingd1(Pars, curve_data):
         hydrodragcorr = Pars.hydro.corr  # hydrodinamic drag correction
         Height = Pars.height
         binomsearch = Pars.cp_adjust
+        
+        adhesion_model = Pars.adhesion_model  # none, DMT, JKR
+        adhesion_region = Pars.adhesion_region # 'approach' 'retraction' 'both'
+        adhesion = 0  # max adhesion force
+        adhesion_pars = [adhesion_model, adhesion_region, -adhesion]
 
         try:
             HeightfromZ = Pars.HeightfromZ
@@ -420,6 +447,38 @@ def tingsprocessingd1(Pars, curve_data):
             hystarea = areaappr - arearetr
             normhystarea = hystarea/areaappr
         contact_timeH = MaxInd*dT
+        
+        E_adhesion = 0
+        adhesion = 0
+        # print(adhesion_model)
+        # print(adhesion_region)
+        if adhesion_model == 'DMT':
+            if adhesion_region == 'approach' or adhesion_region == 'both':
+                Indentretraction_full = Displ[ApprLength+1:] - contactHertzRes - Forcefull1[ApprLength+1:]/Stiffness
+                # use region from the Hertz fit
+                #plt.plot(IndRetrSel,IndFSel) plt.plot(IndFSel) plt.plot(IndRetrSel)
+                funDMTfit = lambda ind, a, b, c: DMTBEC([a, b, c], K1, Poisson, Radius, power, 0, np.nan, modelprobe, ind)
+                fDMTbounds = ([1e-5, -300, -1e10]), ([1e10, DepthStart-1, 0])  # max adh is 0
+                fDMTStartPoint = [1000, 0, -1]  # firstE - cause some problems...
+                fDMT, fHcov = curve_fit(funDMTfit, IndAppSel, IndFSel, fDMTStartPoint, bounds=fDMTbounds)
+                E_adhesion = fDMT[0]
+                adhesion = fDMT[2]
+                print(adhesion)
+            if adhesion_region == 'retraction' or adhesion_region == 'both':
+                Indentretraction_full = Displ[ApprLength+1:] - contactHertzRes - Forcefull1[ApprLength+1:]/Stiffness
+                # find point of lowest force
+                ind_adhesion = np.argmin(Forcefull1[ApprLength+1:])
+                IndRetrSel = Indentretraction_full[:ind_adhesion]
+                IndFSel = Forcefull1[ApprLength+1:ApprLength+ind_adhesion+1]
+                #plt.plot(IndRetrSel,IndFSel) plt.plot(IndFSel) plt.plot(IndRetrSel)
+                funDMTfit = lambda ind, a, b, c: DMTBEC([a, b, c], K1, Poisson, Radius, power, 0, np.nan, modelprobe, ind)
+                fDMTbounds = ([1e-5, -300, -1e10]), ([1e10, DepthStart-1, 0])  # max adh is 0
+                fDMTStartPoint = [1000, 0, -1]  # firstE - cause some problems...
+                fDMT, fHcov = curve_fit(funDMTfit, IndRetrSel, IndFSel, fDMTStartPoint, bounds=fDMTbounds)
+                E_adhesion = fDMT[0]
+                adhesion = fDMT[2]
+                print(adhesion)
+            adhesion_pars = [adhesion_model, adhesion_region, np.nanmin(Forcefull1)]
 
         # print('\n')
         # print(kk)
@@ -437,6 +496,8 @@ def tingsprocessingd1(Pars, curve_data):
             Results.loc[kk, 'Height'] = Height
         Results.loc[kk, 'cpHertz'] = contactHertzRes
         Results.loc[kk, 'EHertzBEC'] = EHertzBEC
+        Results.loc[kk, 'E_adhesion'] = E_adhesion
+        Results.loc[kk, 'adhesion'] = adhesion
         Results.loc[kk, 'contact_timeH'] = contact_timeH
 
         indentationfull = Displ - contactHertzRes - Forcefull1/Stiffness
@@ -540,10 +601,10 @@ def tingsprocessingd1(Pars, curve_data):
                 # FixedparsNFtemp = np.array([[0, 0, 0], [0, 0, 0]], dtype=np.double)
                 if numfitpars > 0:
                     # x is indentationfull
-                    funTing = lambda parf, x: tingFCPWL3uni(parf, 0, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, x)[0]
+                    funTing = lambda parf, x: ting_numerical(parf, adhesion_pars, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, x)[0]
                     Force_fitn, fitTingpar, fitTingcov = fixedfit(funTing, par00, parboundsnp, Fixedpars, indentationfull, Forcefulln)
                 else:
-                    Force_fitn = tingFCPWL3uni(fixedv, 0, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationfull)[0]
+                    Force_fitn = ting_numerical(fixedv, adhesion_pars, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationfull)[0]
                     fitTingpar = []
                 # f = plt.figure(2)
                 # plt.plot(indentationfull, Forcefulln, indentationfull, Force_fitn) # plt.plot(indentationfull, Force_fitn)
@@ -555,7 +616,7 @@ def tingsprocessingd1(Pars, curve_data):
                 resid = Force_fitn - Forcefulln
                 resid = resid*NF
                 resnorm = np.linalg.norm(resid)
-                [Force_fit, crad_fit, contact_time] = tingFCPWL3uni(parfit, 0, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationfull)[0:3]
+                [Force_fit, crad_fit, contact_time] = ting_numerical(parfit, adhesion_pars, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationfull)[0:3]
                 RSq_Ting = r2_score(Forcefull, Force_fit)
                 AdjRSq_Ting = 1-(1-RSq_Ting)*(len(Forcefull)-1)/(len(Forcefull)-numfitpars-1)  # 1-(1-RSq)*(n-1)/(n-p-1)
                 Force_fit_arr[ii] = Force_fit
@@ -635,10 +696,10 @@ def tingsprocessingd1(Pars, curve_data):
                 Forcefulln = Forcefull/NF
                 warnings.simplefilter("ignore")
                 if numfitpars > 0:
-                    funTing = lambda parf, x: tingFCPWL3uni(parf, 0, Poisson, Radius, dT, MaxInd, 0, modelting, modelprobe, x)[0]
+                    funTing = lambda parf, x: ting_numerical(parf, adhesion_pars, Poisson, Radius, dT, MaxInd, 0, modelting, modelprobe, x)[0]
                     Force_fitn, fitTingpar, fitTingcov = fixedfit(funTing, par00, parboundsnp, Fixedpars, indentationfull, Forcefulln)
                 else:
-                    Force_fitn = tingFCPWL3uni(fixedv, 0, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationfull)[0]
+                    Force_fitn = ting_numerical(fixedv, adhesion_pars, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationfull)[0]
                     fitTingpar = []
 
                 warnings.simplefilter("default")
@@ -673,7 +734,7 @@ def tingsprocessingd1(Pars, curve_data):
             # plt.plot(currentcurve3[:,2], currentcurve3[:,4])
             # plt.plot(currentcurve3[:,2], currentcurve3[:,5])
         curve_data[1] = currentcurve2
-    except BaseException as error:  # comment  to cehck errors
+    except BaseException as error:  # comment  to check errors
         Results.loc[kk, 'Name'] = Pars.fnameshort
         Results.loc[kk, 'Pixel'] = curve_data[0]
         Results.loc[kk, 'comment'] = str(error)
@@ -686,7 +747,7 @@ if __name__ == '__main__':
     from utils_ViscoIndent import load_AFM_data_pickle_short, curve_from_saved_pars
     # filename= 'D:/MailCloud/AFM_data/BrukerResolve/cytotoxicity/20211118_Ref52_ACR+NaOCL/control.0_000062.dat'
     filename= 'examples/Bruker_forcevolume_cells3.dat'
-    Pars, Data, Results = load_AFM_data_pickle_short(filename)
+    # Pars, Data, Results = load_AFM_data_pickle_short(filename)
     # Pars.HeightfromZ = 0
     # Pars.height = 1000
     kk = 0
@@ -697,7 +758,8 @@ if __name__ == '__main__':
     if Data.shape[1]<3:
         Data = np.hstack((Data,np.zeros((Data.shape[0],1))))
     Data[kk][2] = DFL_corrs
-    currentcurve3 = curve_from_saved_pars(Pars, Data[kk], Results.loc[kk, :])
+    # currentcurve3 = curve_from_saved_pars(Pars, Data[kk], Results.loc[kk, :])
+    currentcurve3 = curve_from_saved_pars(Pars, Data[kk], Results2.loc[0, :])
     plt.plot(currentcurve3[:, 2], currentcurve3[:, 3])
     if currentcurve3.shape[1]>4:
         plt.plot(currentcurve3[:, 2], currentcurve3[:, 4])
