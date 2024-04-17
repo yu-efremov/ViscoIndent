@@ -145,7 +145,7 @@ def ting_numerical(par, adhesion, Poisson, probe_size, dT, MaxInd, Height, model
         # ForceT[i] = K1 * (BEC[ijk]*np.trapz(Et[i:i-ijk-1:-1]*ind2speed[:ijk+1], dx=dT))
         ForceT[i] = K1 * (BEC[ijk]*np.trapz(Et[i:i-ijk-1:-1]*ind2speed[:ijk+1], dx=dT))
     if modelting == 'DMT':
-        ForceT += adhesion;
+        ForceT -= adhesion;
     cntrad = cntrad[0:len(indentationfull)]
     contact_time = endofalgorithm2*dT
     # plt.plot(indentationfull,Force2)  # linestyle=':'
