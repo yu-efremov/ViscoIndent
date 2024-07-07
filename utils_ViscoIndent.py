@@ -206,7 +206,7 @@ def curve_from_saved_pars(Pars, cData, cResults):
                 break
         indentationTing = indentationfullTing[locationcpTing+1:indend]
         indentationTing[indentationTing<0] = 0
-        Force_fitT = tingFCPWL3uni(parf, Poisson, Radius, dT, MaxInd, 0, modelting, modelprobe, indentationTing)[0]
+        Force_fitT = tingFCPWL3uni(parf, 0, Poisson, Radius, dT, MaxInd, 0, modelting, modelprobe, indentationTing)[0]
         # plt.plot(indentationTing, Force_fitT)
         # plt.plot(indentationfullTing, Forcec)
 
@@ -224,7 +224,7 @@ def curve_from_saved_pars(Pars, cData, cResults):
                     break
             indentationTing = indentationfullTing[locationcpTing+1:indend]
             indentationTing[indentationTing<0] = 0
-            Force_fitTBEC = tingFCPWL3uni(parf, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationTing)[0]
+            Force_fitTBEC = tingFCPWL3uni(parf, 0, Poisson, Radius, dT, MaxInd, Height, modelting, modelprobe, indentationTing)[0]
             # plt.plot(indentationTing, Force_fitT)
             # plt.plot(currentcurve3[:, 2]-(cpTing-cpHertz), currentcurve3[:, 5])
             # plt.plot(indentationfullTing, Forcec)
@@ -251,8 +251,8 @@ if __name__ == '__main__':
     # Pars, Data, Results = load_AFM_data_pickle(filename)
     # Pars, Data, Results = load_AFM_data_pickle_short(filename)
     # Pars, Data, Results = save_AFM_data_pickle_short(filename, Pars, Data, Results)
-    filename= 'D:/MailCloud/AFM_data/BrukerResolve/cytotoxicity/20211118_Ref52_ACR+NaOCL/control.0_000062.dat'
-    Pars, Data, Results = load_AFM_data_pickle_short(filename)
+    # filename= 'D:/MailCloud/AFM_data/BrukerResolve/cytotoxicity/20211118_Ref52_ACR+NaOCL/control.0_000062.dat'
+    # Pars, Data, Results = load_AFM_data_pickle_short(filename)
     currentcurve3 = curve_from_saved_pars(Pars, Data[0], Results.loc[0, :])
     plt.plot(currentcurve3[:, 2], currentcurve3[:, 3])
-    plt.plot(currentcurve3[:, 2], currentcurve3[:, 5])
+    plt.plot(currentcurve3[:, 2], currentcurve3[:, 4])
