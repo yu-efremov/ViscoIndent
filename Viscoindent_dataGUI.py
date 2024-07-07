@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, \
 from PyQt5.QtCore import Qt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 # import matplotlib.pyplot as plt
 import numpy as np
@@ -32,7 +33,7 @@ from set_Pars_commongui import set_Pars
 from utils_ViscoIndent import save_AFM_data_pickle, \
     save_AFM_data_pickle_short, curve_from_saved_pars
 from selection_windows_common_gui import selection_win1
-from config import config as config  # biomomentum cells config
+from config import cells as config  # biomomentum cells config
 
 
 def dicttolist(Dict):
@@ -269,6 +270,7 @@ class App(QMainWindow):
         self.Pars.kk = 0
         self.read_data()
         self.m = PlotCanvas(self, self.Pars, self.Data, width=5, height=4)
+        self.toolbar = NavigationToolbar(self.m, self)
         self.curvedata = PlotCanvas.plot(self.m, self.Pars, self.Data, self.Results)
 
         button_launch = QPushButton('Start processing', self)
@@ -319,6 +321,7 @@ class App(QMainWindow):
         layoutM.addLayout(layout2)
 
         layout3.addWidget(self.graphT)
+        layout3.addWidget(self.toolbar)
         layout3.addWidget(self.m)
         layout3.addWidget(self.slider)
 
