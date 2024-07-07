@@ -80,11 +80,12 @@ ResultsMean = ResultsMean.astype({'Name': str,
 
 keyVs = ['EHertzBEC', 'E0BEC', 'EinfBEC', 'alpha_tauBEC']
 # keyVs = ['EHertzBEC', 'Height']
-keyVs = ['EHertzBEC']
+keyVs = ['Eloss']
 badinds=[]
 for keyV in keyVs:
     for ii in range(1, counter2+1):
-        indsc = ResultsAll.loc[ResultsAll['reginds'] == ii]
+        indsc0 = ResultsAll.loc[ResultsAll['reginds'] == ii]
+        indsc = indsc0.loc[indsc0['AdjRsq'] > 0.8]  # select AdjRsq level
         if len(indsc)>0:
             indscUp = indsc.loc[indsc['Height'] > np.mean(indsc['Height'])]
             indscDown = indsc.loc[indsc['Height'] < np.mean(indsc['Height'])]

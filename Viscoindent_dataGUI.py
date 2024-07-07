@@ -33,7 +33,7 @@ from set_Pars_commongui import set_Pars
 from utils_ViscoIndent import save_AFM_data_pickle, \
     save_AFM_data_pickle_short, curve_from_saved_pars
 from selection_windows_common_gui import selection_win1
-from config import cells as config  # biomomentum cells config
+from config import config as config  # biomomentum cells config
 
 
 def dicttolist(Dict):

@@ -12,8 +12,7 @@ MATLAB Central File Exchange. Retrieved September 1, 2021.
 This version of the code is not fully tested, and there might be some problems 
 since the ARDF file protocol is proprietary and may change
 Reads and imports Asylum Research ARDF files to Python structures for force curve analysis.
-2023.01: modified for new ARDF files
-
+2023.01: tested and modified for new ARDF files
 """
 
 import numpy as np

@@ -214,6 +214,15 @@ class flattenAFMwrap(QMainWindow):
         elif self.Pars.PLpars.PLmode == 2:
             zin = np.mean(zin)
             bas = zin*np.ones([mapsize, mapsize])
+        elif self.Pars.PLpars.PLmode == 3:  #TODO line-by-line
+            porder = 1
+            bas = np.zeros((mapsize, mapsize))
+            for ij in range(0, mapsize):
+                xLine=zin[ij,:]
+                nanInds = np.isnan(xLine)
+                pval = np.polyfit(x(~nanInds), xLine(~nanInds), porder)
+                corrline = np.polyval(pval, x)
+                bas[:,ij] = corrline
         # coorection for deflection in curves
         if hasattr(self.MAPdialog, 'Data'):
             print('DFL correction applied')

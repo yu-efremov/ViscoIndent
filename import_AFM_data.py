@@ -185,6 +185,7 @@ if __name__ == '__main__':
     Pars = Pars_gen()
     Pars.filedir.append(filename)
     Bruker_data = Bruker_import(Pars)
+    Bruker_data.Header
     Data = Bruker_data.Data
     Pars = Bruker_data.Pars
     Pars_dict = Pars.class2dict()

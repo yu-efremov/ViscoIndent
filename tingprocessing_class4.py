@@ -686,10 +686,10 @@ if __name__ == '__main__':
     from utils_ViscoIndent import load_AFM_data_pickle_short, curve_from_saved_pars
     # filename= 'D:/MailCloud/AFM_data/BrukerResolve/cytotoxicity/20211118_Ref52_ACR+NaOCL/control.0_000062.dat'
     filename= 'examples/Bruker_forcevolume_cells3.dat'
-    Pars, Data, Results = load_AFM_data_pickle_short(filename)
+    # Pars, Data, Results = load_AFM_data_pickle_short(filename)
     # Pars.HeightfromZ = 0
     # Pars.height = 1000
-    kk = 0
+    kk = 4
     curve_data = Data[kk]
     curve=curve_data[1]
     # plt.plot(curve[:,0], curve[:,1])
@@ -701,6 +701,6 @@ if __name__ == '__main__':
     plt.plot(currentcurve3[:, 2], currentcurve3[:, 3])
     if currentcurve3.shape[1]>4:
         plt.plot(currentcurve3[:, 2], currentcurve3[:, 4])
-    if currentcurve3.shape[1]>5:
+    if currentcurve3.shape[1]>12:
         plt.plot(currentcurve3[:, 2], currentcurve3[:, 5])
 
