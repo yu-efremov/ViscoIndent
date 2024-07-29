@@ -231,7 +231,7 @@ class selection_win1(QMainWindow):
                 self.selection_win1_gui.Data = self.Data
                 self.selection_win1_gui.Results = self.Results
                 self.selection_win1_gui.supress_ROIquestion = self.supress_ROIquestion
-                from config import biomomentum as config  # biomomentum config for ibw
+                from VI_config import biomomentum as config  # biomomentum config for ibw
                 self.selection_win1_gui.config = config
                 self.close()
                 self.selection_win1_gui.initUI2()
@@ -270,7 +270,7 @@ class selection_win1(QMainWindow):
                 self.selection_win1_gui.Data = self.Data
                 self.selection_win1_gui.Results = self.Results
                 self.selection_win1_gui.supress_ROIquestion = self.supress_ROIquestion
-                from config import biomomentum as config  # biomomentum cells config
+                from VI_config import biomomentum as config  # biomomentum cells config
                 self.selection_win1_gui.config = config
                 self.close()
                 self.selection_win1_gui.initUI2()
