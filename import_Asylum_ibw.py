@@ -6,7 +6,7 @@ Created on Sat Nov 18 17:39:29 2023
 # import ibw files
 """
 # from data_import_functions import binarywave as ibw
-import igor.binarywave as ibw           # https://pypi.org/project/igor/
+import igor2.binarywave as ibw           # https://pypi.org/project/igor/
 import numpy as np
 # import pandas as pd
 # import matplotlib.pyplot as plt

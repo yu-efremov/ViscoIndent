@@ -33,7 +33,8 @@ from set_Pars_commongui import set_Pars
 from utils_ViscoIndent import save_AFM_data_pickle, \
     save_AFM_data_pickle_short, curve_from_saved_pars
 from selection_windows_common_gui import selection_win1
-from config import config as config  # biomomentum cells config
+from config_gui import config_gui
+from VI_config import cells as config  # biomomentum cells config
 
 
 def dicttolist(Dict):
@@ -183,6 +184,7 @@ class App(QMainWindow):
         self.MAPviewdialog = maps_view(self)
         self.changeParsdialog = set_Pars(self)
         self.selection_win1 = selection_win1(self)
+        self.config_gui = config_gui(self)
         self.initUI()
 
     def initUI(self):
@@ -199,14 +201,16 @@ class App(QMainWindow):
                 self.Results.Pixel = self.Data[:, 0]  # remove nans
             else:
                 self.Results = Results
+        self.config_gui.initUI()
         self.start_folder = config['start_folder']
-        self.selection_win1.initUI()
+        # self.selection_win1.initUI()
 
     def initUI2(self):
         # UI after the data selection
         # load config
         if not hasattr(self, 'config') and not hasattr(self, 'loaded'):
-            self.config = config
+            # self.config = config
+            self.config = self.selected_config
             self.supress_ROIquestion = self.config['supress_ROIquestion']
             self.Pars.HeightfromZ = self.config['HeightfromZ']
             self.Pars.ROIPars.ROImode = self.config['ROImode']
