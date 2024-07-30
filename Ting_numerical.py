@@ -8,7 +8,7 @@ Probe parameters:
     probe_size = probe dimension, probe_size of sphere/cylinder, angle of the cone/pyramid
 Material parameters:
     Possion = Poisson's ratio
-    modelting = relaxation function
+    viscomodel = relaxation function
     par = parameters of the relaxation function (viscoelastic parameters)
     par[0] = EHertz in elastic, E0 in SLS, E1 in PLR model
     par[1] = tau in SLS, alpha in PLR model
@@ -31,12 +31,12 @@ from bottom_effect_correction import bottom_effect_correction
 from relaxation_functions import relaxation_function
 
 
-def ting_numerical(par, adhesion_pars, Poisson, probe_size, dT, MaxInd, Height, modelting, probe_geom, indentationfull):
+def ting_numerical(par, adhesion_pars, Poisson, probe_size, dT, MaxInd, Height, viscomodel, probe_geom, indentationfull):
     PointN = len(indentationfull)
     time = np.linspace(0, dT*(PointN-1), PointN)
 
     # Et construction
-    [Et, eta] = relaxation_function(par, modelting, time)[0:2]
+    [Et, eta] = relaxation_function(par, viscomodel, time)[0:2]
     # plt.plot(time, Et)
     # remove zero-time singularity if needed
     if np.isinf(Et[0]):
@@ -152,11 +152,20 @@ def ting_numerical(par, adhesion_pars, Poisson, probe_size, dT, MaxInd, Height, 
             ForceT[:MaxInd] += adhesion_force
         if adhesion_region  == 'retraction' or adhesion_region  == 'both':
             ForceT[MaxInd:endofalgorithm2] += adhesion_force
+    if adhesion_model == 'JKR' and viscomodel == 'elastic' and probe_geom == 'sphere':
+        pass
+    if adhesion_model == 'JKR' and viscomodel != 'elastic':
+        print('Sorry, no model combining JKR and viscoelasticity yet')
+    if adhesion_model == 'JKR' and probe_geom != 'sphere':
+        print('Sorry, JKR model only for sphere/parabolic indenter')        
     cntrad = cntrad[0:len(indentationfull)]
     contact_time = endofalgorithm2*dT
     # plt.plot(indentationfull,Force2)  # linestyle=':'
     return ForceT, cntrad, contact_time, t1_ndx, Et, ForceR
 
+def JKR(par, adhesion_force, K1, probe_size, ind):
+    
+    pass
 
 def smoothM(d, parS):
     # auxillary function for smoothing the data by moving average
@@ -187,8 +196,8 @@ if __name__ == '__main__':
     MaxInd = 501
     dT = 1/MaxInd
     Height = 0
-    modelting = 'springpot-dashpot-parallel'
-    modelting = 'sPLR'
+    viscomodel = 'springpot-dashpot-parallel'
+    viscomodel = 'sPLR'
     probe_geom = 'sphere'
     t = np.linspace(0, 2, MaxInd*2+1)
     indentationfull = np.piecewise(t, [t <= 1, t >= 1], [lambda t: t, lambda t: 2-t])
@@ -197,7 +206,7 @@ if __name__ == '__main__':
     par = [10000, 0.1, 10, 1, 10]
     t1 = time.time()
     ForceT, cntrad, contact_time, t1_ndx, Et, ForceR = ting_numerical(par,
-    Poisson, probe_size, dT, MaxInd, Height, modelting, probe_geom, indentationfull)
+    Poisson, probe_size, dT, MaxInd, Height, viscomodel, probe_geom, indentationfull)
     t2 = time.time()
     print(t2-t1)
     f = plt.figure(1)

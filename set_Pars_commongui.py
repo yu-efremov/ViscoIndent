@@ -132,7 +132,13 @@ class set_Pars(QMainWindow):
         # self.fixpars_box3.stateChanged.connect(self.update_Pars)
 
         self.labelOptions = QLabel('Processing options')
-
+        self.downsampling_label = QLabel('Downsampling')
+        self.downsampling_types = ['off', 'moderate', 'strong']
+        self.cb_downsampling_types = QComboBox()
+        self.cb_downsampling_types.addItems(self.downsampling_types)
+        self.hydro_box = QCheckBox('Hydrodynamic correction', self)
+        # self.hydro_box.toggle()
+        # self.hydro_box.stateChanged.connect(self.update_Pars)
         self.hydro_box = QCheckBox('Hydrodynamic correction', self)
         # self.hydro_box.toggle()
         # self.hydro_box.stateChanged.connect(self.update_Pars)
@@ -237,8 +243,13 @@ class set_Pars(QMainWindow):
         layoutCB.addWidget(self.le_depth_start)
         layoutCB.addWidget(self.labelupperlimit)
         layoutCB.addWidget(self.le_depth_end)
-
+        
+        layoutDS = QHBoxLayout()
+        layoutDS.addWidget(self.downsampling_label)
+        layoutDS.addWidget(self.cb_downsampling_types)
+        
         layoutC.addWidget(self.labelOptions)
+        layoutC.addLayout(layoutDS)
         layoutC.addWidget(self.hydro_box)
         layoutC.addLayout(layoutCA)
         layoutC.addLayout(layoutCA2)
@@ -352,6 +363,10 @@ class set_Pars(QMainWindow):
         self.le_depth_start.setText(str(self.Pars.depth_start))
         self.le_depth_end.setText(str(self.Pars.depth_end))
 
+        if not hasattr(self.Pars, 'downsampling'):
+            self.Pars.downsampling = 0
+        self.cb_downsampling_types.setCurrentIndex(self.Pars.downsampling)  
+
     def update_Pars(self):
         self.changeviscomodel()
         self.Pars.probe_shape = str(self.cbProbe.currentText())
@@ -406,6 +421,7 @@ class set_Pars(QMainWindow):
             self.Pars.cp_adjust = 1
         else:
             self.Pars.cp_adjust = 0
+        self.Pars.downsampling = self.cb_downsampling_types.currentIndex()
         self.Pars.depth_start = float(self.le_depth_start.text())
         self.Pars.depth_end = float(self.le_depth_end.text())
         # print (self.Pars.probe_shape)

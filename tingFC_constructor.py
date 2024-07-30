@@ -27,7 +27,7 @@ def tingFC_constructor(Pars, indentationfull):
     probe_size = Pars['probe_dimension']  # probe size
     Poisson = Pars['Poisson']          # Poisson's ratio of the sample
     dT = Pars['dT']                    # Sampling time
-    modelting = Pars['viscomodel']  # relaxation function
+    viscomodel = Pars['viscomodel']  # relaxation function
     Height = Pars['height']  # sample thickness
     pars = Pars['Vpars']  # relaxation function parameters
     noise = Pars['noise']  # % noise level from median force
@@ -97,7 +97,7 @@ def tingFC_constructor(Pars, indentationfull):
 
     # launch ting_numerical to construct force
     [force, cradius, contact_time, t1_ndx2, Et] = ting_numerical(pars, adhesion_pars,
-        Poisson, probe_size, dT, MaxInd, Height, modelting, probe_geom,
+        Poisson, probe_size, dT, MaxInd, Height, viscomodel, probe_geom,
         indentationfull)[0:5]
 
     # add noise
@@ -133,6 +133,9 @@ if __name__ == '__main__':
     Pars['Vpars'] = np.array([1000, 0.1, 0, 0])
     Pars['noise'] = 3  # % noise level from median force
     Pars['hydrodrag'] = 1e-5  # [nN*s/nm] coefficient of viscous drag
+    Pars['adhesion_model'] = 'DMT'
+    Pars['adhesion_region'] = 'retraction'
+    Pars['adhesion'] = 0.02
     # Pars['viscomodel'] = 'dSLS'
     # Pars['Vpars'] = np.array([1000, 0.4, 1, 0.01, 0])
 
