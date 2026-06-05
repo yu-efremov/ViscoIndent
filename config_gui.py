@@ -4,31 +4,61 @@ Created on Mon Jul  8 18:45:53 2024
 
 @author: Yuri
 """
-import sys
+import sys, os
 from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QPushButton,\
     QComboBox, QVBoxLayout, QLabel
+import configparser
+import ast
+
 
 class config_gui(QMainWindow):
     
+    def smart_parse(self, value):
+        try:
+            return ast.literal_eval(value)
+        except (ValueError, SyntaxError):
+            return value
+
+    def get_script_dir(self):  # path
+        if getattr(sys, 'frozen', False):
+            self.scriptdir = os.path.dirname(sys.executable)
+        else:
+            self.scriptdir = os.path.dirname(os.path.abspath(__file__))
+        print("Script folder")
+        print(self.scriptdir)
+
     def __init__(self, parent=None):
         super(config_gui, self).__init__(parent)
         self.config_gui = parent  # share variables
         if not hasattr(self.config_gui, 'commongui'):
             self.initUI()
 
-
     def initUI(self):
-        import VI_config
-        self.configs = {
-               name: value 
-               for name, value in vars(VI_config).items() 
-               if not name.startswith('__') 
+        self.get_script_dir()
+        self.config_path = os.path.join(self.scriptdir, 'config.ini')
+        if not os.path.exists(self.config_path):
+            import VI_config
+            config_dict = {
+                   name: value 
+                   for name, value in vars(VI_config).items() 
+                   if not name.startswith('__') 
+                   }
+            print('no config file')
+        else:
+            config = configparser.ConfigParser(inline_comment_prefixes=('#', ';'))
+            config.optionxform = str 
+            config.read(self.config_path)
+            #print (config.items('default'))
+            print('config file loaded')
+            config_dict = {
+            section: {key: self.smart_parse(val) for key, val in config.items(section)}
+            for section in config.sections()
             }
-        configs_list = [
-               name 
-               for name, value in vars(VI_config).items() 
-               if not name.startswith('__') 
-            ]
+            print(config_dict)
+
+        configs_list = list(config_dict.keys())
+
+        self.configs = config_dict
         self.configs_names = configs_list
         self.cb_configs_names = QComboBox()
         self.cb_configs_names.addItems(self.configs_names)
@@ -78,6 +108,7 @@ class config_gui(QMainWindow):
             self.config_gui.selected_config_name = self.selected_config
             self.config_gui.selected_config = self.configs[self.selected_config]
             self.hide()
+            # self.close()
             self.config_gui.selection_win1.initUI()
             print('module_config_gui_finished')
 

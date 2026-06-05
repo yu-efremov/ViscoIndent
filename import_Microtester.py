@@ -23,6 +23,7 @@ def import_Microtester(filename):
     return DataTable
 
 def import_Microtester_toVI(fileName, Data):
+    # load force - displacement curve
     DataTable = import_Microtester(fileName)
    
     # Z = (DataTable.BaseDisplacementum-DataTable.TipDisplacementum)*1000 # to nm
@@ -42,8 +43,8 @@ def import_Microtester_toVI_multi(fileNames):
     Pars = Pars_gen()
     Pars.filedir.append(fileNames[0])
     Pars.TipType = 'Macro'
-    Pars.InvOLS = 1e-9
-    Pars.k = 1e9
+    Pars.InvOLS = 1  # both Invols and k set to 1 (was 1e-9, 1e9)
+    Pars.k = 1  # the force is imported
     Pars.probe_shape = 'sphere'
     Pars.probe_dimension = 0.25*1e6
     Pars.Poisson = 0.5         # Poisson's ratio of the sample
@@ -68,6 +69,20 @@ def import_Microtester_toVI_multi(fileNames):
     Data = np.asarray(Data, dtype=object)
     Results = make_Results(np.shape(Data)[0])
     Pars.PL = np.zeros(np.shape(Data)[0])
+    Pars.dT = Data[-1, 3]
+    
+    tst_file = glob.glob(fileNames[-1][:-4] + ".tst")[0]
+    with open(tst_file, 'r') as file:
+        lines = [line.rstrip() for line in file]
+    # print(lines[36:38])  # different for 2 cameras
+    for num, line in enumerate(lines):
+        # print(line)
+        if "BEGIN_CONTROLS" in line:
+            mainline = num
+            pass
+    # print(mainline)
+    beaminfo = lines[mainline+1] + lines[mainline+2]
+    # print(lines[mainline])
     
     return Pars, Data, Results
 

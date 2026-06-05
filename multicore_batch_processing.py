@@ -21,7 +21,7 @@ import os.path  # for check existance of the spm file
 import pickle
 
 from make_Results import make_Results
-from tingprocessing_class4 import tingsprocessingd1
+from force_curve_fit import tingsprocessingd1
 from utils_ViscoIndent import save_AFM_data_pickle, load_AFM_data_pickle, \
     load_AFM_data_pickle_short, save_AFM_data_pickle, \
     save_AFM_data_pickle_short, curve_from_saved_pars
@@ -115,12 +115,13 @@ if __name__ == '__main__':
     # fileName = filenames[0]
     for fileName in filenames:
         Pars, Data, Results = load_AFM_data_pickle_short(fileName)
+        # Pars, Data, Results = load_AFM_data_pickle(fileName)
         Pars.viscomodel = 'sPLRetatest'
         Results3 = make_Results(1)
         t1 = time.time()
         
         #out = Parallel(n_jobs=num_cores-2)(delayed(tingsprocessingd1)(Pars, Data[kk]) for kk in range(0, 25))  # from class4
-        out = Parallel(n_jobs=num_cores-2)(delayed(tingsprocessingd1)(Pars, Data[kk]) for kk in range(0, Data.shape[0]-1))  # from class4
+        out = Parallel(n_jobs=num_cores-2)(delayed(tingsprocessingd1)(Pars, Data[kk][0:4]) for kk in range(0, Data.shape[0]-1))  # from class4
         t2 = time.time()
         print(t2-t1)
         if np.shape(Data)[1]<3:
@@ -131,4 +132,5 @@ if __name__ == '__main__':
             Results.loc[kk, :] = out[kk][0].loc[0, :]
             
         fileNameSav = fileName # rewrite file
+        # save_AFM_data_pickle(fileNameSav, Pars, Data, Results)
         save_AFM_data_pickle_short(fileNameSav, Pars, Data, Results)

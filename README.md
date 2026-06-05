@@ -1,5 +1,5 @@
 # ViscoIndent
-**Simulation and processing of indentation experiments obtained using Atomic Force Microscopy and other techniques**
+**Simulation and processing of indentation experiments**
 1) Simulated force versus indentation curves for soft viscoelastic materials
 2) Fitting of the experimental force versus indentation (time) curves with the selected viscoelastic models
 

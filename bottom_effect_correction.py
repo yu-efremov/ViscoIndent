@@ -60,6 +60,18 @@ def bottom_effect_correction(Poisson, Probe_dimension, Height, modelprobe,
             # BECspeed = np.ones(len(indentationfull))
             print('BECspeed not ready yet')
 
+        elif modelprobe == 'spheroid':
+        # coefficients from FEM simulations
+            # R = Height/2;
+            Dpar1 = 0.8771
+            Dpar2 = 1.4947
+            Dpar3 = 0.2109
+            Dpar4 = 0.0010
+            Dpar5 = 142.3725
+            b = (indentationfull/R/8/2)**0.5
+            BEC = 1 + Dpar1*b + Dpar2*b**2 + Dpar3*b**3 + Dpar4*b**4 + Dpar5*b*5
+            BECspeed = np.ones(len(indentationfull))
+
     else:
         if modelprobe == 'sphere':
             # coefficients are from doi.org/10.1016/S0006-3495(02)75620-8
@@ -89,12 +101,12 @@ def bottom_effect_correction(Poisson, Probe_dimension, Height, modelprobe,
                              2*(Dpar3*b**3) +\
                            7/3*(Dpar4*b**4)
 
-        elif modelprobe in ['pyramid', 'çone', 'cylinder']:
+        elif modelprobe in ['pyramid', 'çone', 'cylinder', 'spheroid']:
             # in the curent version of the script the correction is not yet implemented
             BEC = np.ones(len(indentationfull))
             BECspeed = np.ones(len(indentationfull))
             print('BEC is not yet avilable')
-
+    BEC[np.isnan(BEC)] = 1  # for adhesion
     return BEC, BECspeed
 
 

@@ -13,9 +13,10 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, \
 import numpy as np
 from PyQt5 import QtCore
 from Pars_class import Pars_gen
-from import_AFM_data import Bruker_import
+from import_Bruker_spm import Bruker_import
 from import_ARDF import ARDF_import
 from import_Asylum_ibw import import_multifiles_ibw
+from import_jpk_map import import_jpk_map
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir+ '/projects/microtester')
@@ -38,14 +39,20 @@ class selection_win1(QMainWindow):
 
     def initUI(self):
 
-        self.btn_loadSPM = QPushButton("Load .spm (Bruker)", self)
-        self.btn_loadSPM.clicked.connect(self.load_spm)
-
+        self.btn_loadSPMmap = QPushButton("Load .spm (Bruker map)", self)
+        self.btn_loadSPMmap.clicked.connect(self.load_spm_map)
+        
+        self.btn_loadSPMcurve = QPushButton("Load .spm (Bruker single curve)", self)
+        self.btn_loadSPMcurve.clicked.connect(self.load_spm_curve)
+        
         self.btn_loadARDF = QPushButton("Load .ARDF (Asylum)", self)
         self.btn_loadARDF.clicked.connect(self.load_ardf)
 
         self.btn_load_ibw = QPushButton("Load .ibw (Asylum)", self)
         self.btn_load_ibw.clicked.connect(self.load_ibw)
+
+        self.btn_load_jpkMap = QPushButton("Load .jpk-force-map (JPK_force_map)", self)
+        self.btn_load_jpkMap.clicked.connect(self.load_jpkMap)
 
         self.btn_loadBiomomentumFC = QPushButton("Load Biomomentum data", self)
         self.btn_loadBiomomentumFC.clicked.connect(self.load_biomomentum)
@@ -87,22 +94,30 @@ class selection_win1(QMainWindow):
         self.setGeometry(300, 300, 900, 100)
         self.setWindowTitle('Select data to open')
         layoutA = QHBoxLayout()
-        layoutA.addWidget(self.btn_loadSPM)
-        layoutA.addWidget(self.btn_loadARDF)
-        layoutA.addWidget(self.btn_load_ibw)
-        layoutA.addWidget(self.btn_loadBiomomentumFC)
+        layoutA.addWidget(self.btn_loadSPMmap)
+        layoutA.addWidget(self.btn_loadSPMcurve)
         layoutB = QHBoxLayout()
-        layoutA.addWidget(self.btn_loadMicrotesterFC)
-        layoutB.addWidget(self.btn_loadDATshort)
-        layoutB.addWidget(self.btn_loadDATfull)
-        layoutB.addWidget(self.btn_loadWorkspace)
+        layoutB.addWidget(self.btn_loadARDF)
+        layoutB.addWidget(self.btn_load_ibw)
         layoutC = QHBoxLayout()
-        layoutC.addWidget(self.btn_Exit)
+        layoutC.addWidget(self.btn_load_jpkMap)
+        layoutD = QHBoxLayout()
+        layoutD.addWidget(self.btn_loadBiomomentumFC)
+        layoutD.addWidget(self.btn_loadMicrotesterFC)
+        layoutE = QHBoxLayout()
+        layoutE.addWidget(self.btn_loadDATshort)
+        layoutE.addWidget(self.btn_loadDATfull)
+        layoutE.addWidget(self.btn_loadWorkspace)
+        layoutF = QHBoxLayout()
+        layoutF.addWidget(self.btn_Exit)
         layoutM = QVBoxLayout()
         layoutM.addWidget(self.label_textabove)
         layoutM.addLayout(layoutA)
         layoutM.addLayout(layoutB)
         layoutM.addLayout(layoutC)
+        layoutM.addLayout(layoutD)
+        layoutM.addLayout(layoutE)
+        layoutM.addLayout(layoutF)
 
         widget = QWidget()
         widget.setLayout(layoutM)
@@ -110,7 +125,7 @@ class selection_win1(QMainWindow):
         self.show()
         self.activateWindow()
 
-    def load_spm(self):
+    def load_spm_map(self):
         options = QFileDialog.Options()
         self.fileName, _ = QFileDialog.getOpenFileName(self, "Select Bruker file", self.lookfolder, "Bruker files (*.spm)", options=options)
         if self.fileName != "":
@@ -154,7 +169,41 @@ class selection_win1(QMainWindow):
                 self.close()
                 self.selection_win1_gui.initUI2()
 
-
+    def load_spm_curve(self):
+        options = QFileDialog.Options()
+        self.fileNames, _ = QFileDialog.getOpenFileNames(self, "Select Bruker file", self.lookfolder, "Bruker files (*.spm)", options=options)
+        if len(self.fileNames)>0:
+            Data = []
+            Pars = Pars_gen()
+            for filename in self.fileNames:
+                Pars.filedir.append(filename)
+                Bruker_data = Bruker_import(Pars, Data=Data)
+                Data = Bruker_data.Data
+                Pars = Bruker_data.Pars
+            Pars.probe_shape = 'sphere'
+            Pars.Poisson = 0.5         # Poisson's ratio of the sample
+            Pars.height = 0
+            Pars.HeightfromZ = 0
+            Pars.viscomodel = 'elastic'
+            Pars.hydro.corr = 1
+            Pars.hydro.corr_type = 2
+            Pars.hydro.speedcoef = 5.0e-7
+            Pars.cp_adjust = 1
+            self.Data = Bruker_data.Data
+            self.Pars = Bruker_data.Pars
+            self.Results = make_Results(np.shape(self.Data)[0])
+            print('spm data loaded from files (single curves)')
+            self.Results.Pixel = self.Data[:, 0]  # remove nans
+            if hasattr(self.selection_win1_gui, 'commongui'):
+                # self.selection_win1_gui.supress_ROIquestion = 1
+                if hasattr(self.selection_win1_gui, 'config'):
+                    delattr(self.selection_win1_gui, 'config')
+                self.selection_win1_gui.Pars = self.Pars
+                self.selection_win1_gui.Data = self.Data
+                self.selection_win1_gui.Results = self.Results
+                self.close()
+                self.selection_win1_gui.initUI2()
+        
     def load_ardf(self):
         options = QFileDialog.Options()
         self.fileName, _ = QFileDialog.getOpenFileName(self, "Select Asylum ARDF file", self.lookfolder, "AR Files (*.ardf)", options=options)
@@ -216,6 +265,10 @@ class selection_win1(QMainWindow):
         if len(self.fileNames)>0:
             Pars, Data, Results = import_multifiles_ibw(self.fileNames)
             Pars.topo = np.ones([1, np.shape(Data)[0]])
+            Pars.hydro.corr = 1
+            Pars.hydro.corr_type = 2
+            Pars.hydro.speedcoef = 0
+            Pars.cp_adjust = 0
             print('Asylum .ibw data loaded')
             self.Data = Data
             self.Pars = Pars
@@ -231,6 +284,49 @@ class selection_win1(QMainWindow):
                 self.selection_win1_gui.supress_ROIquestion = self.supress_ROIquestion
                 from VI_config import singlecurves as config  # biomomentum config for ibw
                 self.selection_win1_gui.config = config
+                self.close()
+                self.selection_win1_gui.initUI2()
+
+    def load_jpkMap(self):
+        options = QFileDialog.Options()
+        self.fileName, _ = QFileDialog.getOpenFileName(self, "Select JPK jpk-force-map file", self.lookfolder, "JPK Files (*.jpk-force-map)", options=options)
+        if self.fileName != "":
+            filedir0 = self.fileName
+            self.supress_ROIquestion = 0
+
+            fnameshort = filedir0.split("/")
+            fnameshort = fnameshort[-1]
+            Pars = Pars_gen()
+            Pars.probe_shape = 'sphere'
+            Pars.probe_dimension = np.nan
+            Pars.Poisson = 0.5         # Poisson's ratio of the sample
+            Pars.dT = 1e-3             # Sampling time
+            Pars.height = 0
+            Pars.HeightfromZ = 0
+            Pars.viscomodel = 'elastic'
+            Pars.hydro.corr = 1
+            Pars.hydro.corr_type = 2
+            Pars.hydro.speedcoef = 4.0e-7
+            Pars.cp_adjust = 1
+            Pars.downsampling = 1 # "moderate"
+
+            Pars.filedir = []
+            Pars.filedir.append(filedir0)
+            Pars.fnameshort = []
+            Pars.fnameshort.append(fnameshort)
+            self.Data = {}
+            Data = []
+            [Pars, Data] = import_jpk_map(Pars, Data)
+            print('data loaded from ARDF file')
+            self.Data = Data
+            self.Pars = Pars
+            self.Results = make_Results(np.shape(self.Data)[0])
+            print(self.Data[0])
+            self.Results.Pixel = self.Data[:, 0]  # remove nans
+            if hasattr(self.selection_win1_gui, 'commongui'):
+                self.selection_win1_gui.Pars = self.Pars
+                self.selection_win1_gui.Data = self.Data
+                self.selection_win1_gui.Results = self.Results
                 self.close()
                 self.selection_win1_gui.initUI2()
 

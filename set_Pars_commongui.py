@@ -59,7 +59,7 @@ class set_Pars(QMainWindow):
         self.probe_type_label = QLabel('Indenter type: ')
         self.probe_type = QLabel(self.Pars.TipType)
         self.probe_geoms_label = QLabel('Indenter geometry')
-        self.probe_geoms = ['sphere', 'cone', 'cylinder', 'unsupported']
+        self.probe_geoms = ['sphere', 'cone', 'cylinder', 'spheroid', 'unsupported']
         self.cbProbe = QComboBox()
         self.cbProbe.addItems(self.probe_geoms)
 
@@ -290,8 +290,12 @@ class set_Pars(QMainWindow):
                 self.probe_geom_ndx = 2
                 self.probe_geom_shape = 'radius'
                 self.probe_geom_units = '[nm]'
-            else:
+            elif self.Pars.probe_shape == 'spheroid':
                 self.probe_geom_ndx = 3
+                self.probe_geom_shape = 'spheroid_radius'
+                self.probe_geom_units = '[nm]'
+            else:
+                self.probe_geom_ndx = 4
         else:
             self.probe_geom_ndx = 0
             self.probe_geom_shape = 'radius'
@@ -409,6 +413,8 @@ class set_Pars(QMainWindow):
             self.Pars.hydro.corr_type = 1
         elif self.cb_hydro_types.currentIndex() == 1:
             self.Pars.hydro.corr_type = 2
+        elif self.cb_hydro_types.currentIndex() == 2:
+            self.Pars.hydro.corr_type = 3
         self.Pars.hydro.speedcoef = float(self.hydro_coeff_le.text())
         if self.BEC_box.isChecked():  # split heightfromZ, height
             self.Pars.HeightfromZ = 1

@@ -38,6 +38,7 @@ def timetofreqspectrumFun(Wpars, Freqs, modelting, Pars):
         E1w = (E1t-Einf)*pi/2/sin(alpha*pi/2)/math.gamma(alpha)  # checked
         y[:, 0] = E1w*(Freqs**alpha)+Einf
         y[:, 1] = E1w*tan(pi*alpha/2)*(Freqs**alpha)+nu*Freqs
+        # print("Completed")
 
     elif modelting == 'SLS':
         # y = Einf + (E0-Einf).*exp(-x./(tau);
