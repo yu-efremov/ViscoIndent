@@ -11,12 +11,12 @@ import os
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, \
     QVBoxLayout, QHBoxLayout, QLineEdit, QTableView, \
-    QPushButton, QFileDialog, QMessageBox, QComboBox, QSlider, QSizePolicy
-from PyQt5.QtCore import Qt
+    QPushButton, QFileDialog, QMessageBox, QComboBox, QSlider, QSizePolicy, QPlainTextEdit
+from PyQt5.QtCore import Qt, QObject, pyqtSignal
+import logging
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-
 from matplotlib.figure import Figure
 # import matplotlib.pyplot as plt
 import numpy as np
@@ -24,7 +24,7 @@ import numpy as np
 
 
 # from Pars_class import Pars_gen
-# from import_AFM_data import Bruker_import
+from import_Bruker_spm import Bruker_import
 from make_Results import make_Results
 from force_curve_fit import tingsprocessingd1
 from flattenAFMwrap_commongui import flattenAFMwrap
@@ -35,7 +35,6 @@ from utils_ViscoIndent import save_AFM_data_pickle, \
     save_AFM_data_pickle_short, curve_from_saved_pars
 from selection_windows_common_gui import selection_win1
 from config_gui import config_gui
-from VI_config import default as config  # biomomentum cells config
 
 
 def dicttolist(Dict):
@@ -45,7 +44,6 @@ def dicttolist(Dict):
         temp = [key, str(value)]
         dictlist.append(temp)
     return dictlist
-
 
 class App(QMainWindow):
 
@@ -87,9 +85,10 @@ class App(QMainWindow):
             for kk in range(self.Pars.curve_range[0], self.Pars.curve_range[1]+1):
                 if self.Data[kk][3] == 0:
                     self.Data[kk][3] = self.Pars.dT
-                Results_temp, self.Data[kk][0:4], DFL_corrs = tingsprocessingd1(self.Pars, self.Data[kk][0:4])
-                self.Data[kk][2] = DFL_corrs  # TODO 2 is dT, move to 3? no, 3 is dT
+                Results_temp, self.Data[kk][0:5], DFL_corrs = tingsprocessingd1(self.Pars, self.Data[kk][0:5])
+                self.Data[kk][2] = DFL_corrs  
                 self.Results.loc[kk, :] = Results_temp.loc[0, :]
+                self.logger.info("Processed curve" + str(kk))
 
     def button_save_click(self):
         # self.Pars.save_short = 1 # in config
@@ -145,6 +144,40 @@ class App(QMainWindow):
 
     def button_load_click(self):
         self.selection_win1.initUI()
+        
+    def button_load_next_click(self):
+        fullpath = self.Pars.filedir[0]
+        folder_name = os.path.dirname(fullpath)
+        filename = os.path.basename(fullpath )
+        _, ext = os.path.splitext(fullpath )
+        file_list = [f for f in os.listdir(folder_name) if f.endswith(ext)]
+        if filename in file_list:
+            idx = file_list.index(filename)
+            if idx + 1 < len(file_list):
+                next_file = file_list[idx + 1]
+                print("Next file:", next_file)
+                self.Pars.filedir = []
+                self.Pars.filedir.append(os.path.join(folder_name,next_file))
+                self.Pars.fnameshort = []
+                self.Pars.fnameshort.append(next_file)
+                self.Data = {}
+                delattr(self.Pars.ROIPars, 'reg_nums')  # Removes regs
+                Bruker_data = Bruker_import(self.Pars)
+                print('data loaded from file')
+                self.Data = Bruker_data.Data
+                print(self.Data)
+                self.Pars = Bruker_data.Pars
+                self.Results = make_Results(np.shape(self.Data)[0])
+                if self.supress_ROIquestion in [0, 2]:
+                    print('check_ROI')
+                    self.curveviewer()  # help against shutdown
+                    self.MAPdialog.initUI()
+                else:
+                    self.curveviewer()
+            else:
+                print("Target is the last file.")
+        else:
+            print("File not found.")
 
     def button_maps_click(self):
         self.MAPviewdialog.initUI()
@@ -214,18 +247,21 @@ class App(QMainWindow):
     def initUI2(self):
         # UI after the data selection
         # load config
-        if not hasattr(self, 'config') and not hasattr(self, 'loaded'):
-            self.config = config
+        if hasattr(self, 'selected_config') and not hasattr(self, 'loaded'):
+            # self.config = config
+            self.config =  self.selected_config 
             self.supress_ROIquestion = self.config['supress_ROIquestion']
             self.Pars.HeightfromZ = self.config['HeightfromZ']
             self.Pars.ROIPars.ROImode = self.config['ROImode']
             self.Pars.ROIPars.h_level = self.config['h_level']
             self.Pars.save_short = self.config['save_short']
-            # for selpar in vars(self.config.ReplacePars):
-            #     print(selpar)
-            #     setattr(self.Pars, getattr(self.config.ReplacePars, selpar))
+            
+            if hasattr(self.config, 'hydro.speedcoef'):
+                self.Pars.hydro.speedcoef = self.config['hydro.speedcoef']
+                # for selpar in vars(self.config.ReplacePars):
+                #     print(selpar)
+                #     setattr(self.Pars, getattr(self.config.ReplacePars, selpar))
             print('config loaded')
-        
         if self.supress_ROIquestion in [0, 2]:
             print('check_ROI')
             self.curveviewer()  # help against shutdown
@@ -253,6 +289,13 @@ class App(QMainWindow):
             self.Data = Datasel
             self.Results = self.Results.drop(self.Results.index[np.size(self.Data, 0):])  # size correction
             self.Results.Pixel = self.Data[:, 0]  # remove nans
+            if hasattr(self.Pars.ROIPars, 'reg_nums_all'):
+                # reginds = Pars.ROIPars.reg_nums_all[[Pars.ROIPars.reg_nums_all != 0]]
+                reginds = self.Pars.ROIPars.reg_nums_all[self.Pars.ROIPars.reg_nums_all != 0]
+                print(reginds)
+            else:
+                reginds = 1
+            self.Results["ROI"] = reginds
 
         listPars = self.Pars.class2list()  # dicttolist(Pars)
         listResults = dicttolist(self.Results.iloc[0].to_dict())
@@ -302,6 +345,10 @@ class App(QMainWindow):
         button_load.setToolTip('Load new data')
         button_load.clicked.connect(self.button_load_click)
 
+        button_load_next = QPushButton('Load next', self)
+        button_load_next.setToolTip('Load next file')
+        button_load_next.clicked.connect(self.button_load_next_click)
+
         button_changePars = QPushButton('Modify parameters', self)
         button_changePars.setToolTip('Check and modify parameters for the processing')
         button_changePars.clicked.connect(self.button_changePars_click)
@@ -320,6 +367,11 @@ class App(QMainWindow):
         self.slider.valueChanged.connect(self.changeValue)  # 3xcombo for slider
         self.slider.sliderPressed.connect(self.sldDisconnect)
         self.slider.sliderReleased.connect(self.sldReconnect)
+        
+        self.log_widget = QPlainTextEdit()
+        self.log_widget.setReadOnly(True)
+        self.log_widget.setMaximumBlockCount(2)  # keep only last 2 lines
+        self.log_widget.setFixedHeight(50)       # approx. 2 lines height
 
         layoutM = QHBoxLayout()
         layout2 = QVBoxLayout()
@@ -343,10 +395,12 @@ class App(QMainWindow):
             layout3.addWidget(button_update)
         else:
             layout3.addWidget(self.slider)
+        layout3.addWidget(self.log_widget)
 
         layoutR.addWidget(self.table_Res)
         layoutR.addWidget(button_maps)
         layoutR.addWidget(button_load)
+        layoutR.addWidget(button_load_next)        
         layoutR.addWidget(button_save)
         layoutR.addWidget(button_save_excel)
 
@@ -360,6 +414,36 @@ class App(QMainWindow):
 
         self.show()
         self.activateWindow()
+        self.setup_logging()
+    
+    def setup_logging(self):
+        self.logger = logging.getLogger("MyApp")
+        self.logger.setLevel(logging.INFO)
+        self.logger.handlers.clear()
+
+        formatter = logging.Formatter(
+            "%(asctime)s - %(levelname)s - %(message)s",
+            datefmt="%H:%M:%S"
+        )
+
+        # Console handler
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(formatter)
+        self.logger.addHandler(console_handler)
+
+        # Qt handler
+        qt_handler = QtLogHandler()
+        qt_handler.setFormatter(formatter)
+        qt_handler.log_signal.connect(self.update_log)
+        self.logger.addHandler(qt_handler)
+
+    def update_log(self, message):
+        self.log_widget.appendPlainText(message)
+
+    def generate_logs(self): # remove
+        self.logger.info("Process started")
+        self.logger.warning("Processing...")
+        self.logger.error("Something happened")
 
     def closeEvent(self, event):
         print("The program was shut down.")
@@ -368,6 +452,8 @@ class App(QMainWindow):
             Pars = self.Pars
             Data = self.Data
             Results = self.Results
+            # print(dir(self))
+            # plt.close(self.fig3)
         QApplication.quit()
 
 
@@ -525,6 +611,18 @@ class TableModel(QtCore.QAbstractTableModel):
 
     def columnCount(self, index):
         return len(self._data[0])
+
+
+class QtLogHandler(logging.Handler, QObject):  # Qt Log Handler
+    log_signal = pyqtSignal(str)
+
+    def __init__(self):
+        logging.Handler.__init__(self)
+        QObject.__init__(self)
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.log_signal.emit(msg)
 
 
 if __name__ == '__main__':

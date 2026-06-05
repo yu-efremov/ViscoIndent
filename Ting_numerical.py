@@ -69,6 +69,11 @@ def ting_numerical(par, adhesion_pars, Poisson, probe_size, dT, MaxInd, Height, 
         power = 1
         K1 = 2*probe_size
         K12 = probe_size
+    elif probe_geom == 'spheroid': # cylinder
+        power = 1.5
+        K1 = 4*probe_size**0.5/3/2**1.5  # doubled deformation, radius should be same for all
+        # K1 = K1/(probe_size/Height)**0.5  # base diameter on measured height
+        K12 = probe_size**0.5
     K1 = K1/(1-Poisson**2)*1e-9  # compensate nm
 
     # indentation history
@@ -85,11 +90,11 @@ def ting_numerical(par, adhesion_pars, Poisson, probe_size, dT, MaxInd, Height, 
 
     # for i in range (1, PointN-1):  # MaxInd or PointN-1
     #     ndx = np.asarray(range (0, i+1))  # integration limits, dummy variable
-    #     ForceR[i]= K1 * (BEC[i]*np.trapz(Et[i-ndx]*ind2speed[ndx], time[ndx]) + 
+    #     ForceR[i]= K1 * (BEC[i]*np.trapezoid(Et[i-ndx]*ind2speed[ndx], time[ndx]) + 
     #                      power*eta*indentationfull[i]**(power-1)*indspeed[i]*BECspeed[i])
 
     for i in range(1, PointN-1):  # MaxInd or PointN-1
-        ForceR[i] = K1 * (BEC[i]*np.trapz(Et[i::-1]*ind2speed[:i+1], dx=dT) + power*eta*indentationfull[i]**(power-1)*indspeed[i]*BECspeed[i])
+        ForceR[i] = K1 * (BEC[i]*np.trapezoid(Et[i::-1]*ind2speed[:i+1], dx=dT) + power*eta*indentationfull[i]**(power-1)*indspeed[i]*BECspeed[i])
 
     ForceT[:MaxInd]=ForceR[:MaxInd]
     # plt.plot(indentationfull,ForceR)
@@ -109,8 +114,8 @@ def ting_numerical(par, adhesion_pars, Poisson, probe_size, dT, MaxInd, Height, 
         for j in range(b, localend-1, -1):
             if localend == 0:
                 # ndx = np.asarray(range (j, i+1))
-                # res2[j] = np.trapz(Et[i-ndx]*indspeed[ndx], time[ndx]) + eta*indspeed[i]
-                res2[j] = np.trapz(Et[i-j::-1]*indspeed[j:i+1], dx=dT) + eta*indspeed[i]
+                # res2[j] = np.trapezoid(Et[i-ndx]*indspeed[ndx], time[ndx]) + eta*indspeed[i]
+                res2[j] = np.trapezoid(Et[i-j::-1]*indspeed[j:i+1], dx=dT) + eta*indspeed[i]
                 if res2[j] > 0:
                     localend = j
 
@@ -144,9 +149,9 @@ def ting_numerical(par, adhesion_pars, Poisson, probe_size, dT, MaxInd, Height, 
         ijk = t1_ndx[i]
         if ijk == i:
             ijk = i-1
-        # ForceT[i] = K1 * (BEC[ijk]*np.trapz(Et[i-ndx]*ind2speed[ndx], time[ndx]))
-        # ForceT[i] = K1 * (BEC[ijk]*np.trapz(Et[i:i-ijk-1:-1]*ind2speed[:ijk+1], dx=dT))
-        ForceT[i] = K1 * (BEC[ijk]*np.trapz(Et[i:i-ijk-1:-1]*ind2speed[:ijk+1], dx=dT))
+        # ForceT[i] = K1 * (BEC[ijk]*np.trapezoid(Et[i-ndx]*ind2speed[ndx], time[ndx]))
+        # ForceT[i] = K1 * (BEC[ijk]*np.trapezoid(Et[i:i-ijk-1:-1]*ind2speed[:ijk+1], dx=dT))
+        ForceT[i] = K1 * (BEC[ijk]*np.trapezoid(Et[i:i-ijk-1:-1]*ind2speed[:ijk+1], dx=dT))
 
     if adhesion_model in ['JKR', 'JKR_transition']:
         endofalgorithm2 = len(time)
@@ -188,7 +193,7 @@ def JKR(E_Hertz, adhesion_force, Poisson, probe_size, ind):
             return (ax**2/Radius)-4/3*(ax*Fadh/Radius/K)**0.5-IndJKR[k]
         ax0 = prevsolution1
         ax = fsolve(IndJKRfun, ax0)
-        cradius_JKR[k] = ax
+        cradius_JKR[k] = ax[0]
         prevsolution1 = cradius_JKR[k]
     ForceJKR = ((K/Radius)**0.5*cradius_JKR**1.5-Fadh**0.5)**2-Fadh
     # ForceJKR = (K/Radius)*cradius_JKR**3-2*(Fadh*(K/Radius)*cradius_JKR**3)**0.5 # not working
@@ -199,7 +204,7 @@ def JKR_transition(E_Hertz, adhesion_force, Poisson, probe_size, ind):
     K1 = 4/3/(1-Poisson**2)*1e-9
     K = K1*E_Hertz
     Radius = probe_size
-    Fadh = abs(adhesion_force) # should work with negative and positive imput
+    Fadh = abs(adhesion_force) # should work with negative and positive input
     cradMax=(np.max(ind)*probe_size)**0.5
     ForceJKRcrit =  (K/Radius)*cradMax**3-2*(Fadh*(K/Radius)*cradMax**3)**0.5
     IndJKRcrit = (cradMax**2/Radius)-4/3*(cradMax*Fadh/Radius/K)**0.5
@@ -221,7 +226,7 @@ def JKR_transition(E_Hertz, adhesion_force, Poisson, probe_size, ind):
             return (ax**2/Radius)-4/3*(ax*Fadh/Radius/K)**0.5-IndJKR[k]
         ax0 = prevsolution1
         ax = fsolve(IndJKRfun, ax0)
-        cradius_JKR[k] = ax
+        cradius_JKR[k] = ax[0]
         if ax == ax0:
             break
         prevsolution1 = cradius_JKR[k]

@@ -15,14 +15,16 @@ import_opt == 'all_in_selected_folders' - select several folders (content)
 
 """
 
-import sys, os, glob
+import sys, os, glob, re
 from PyQt5.QtWidgets import QApplication, QWidget, QFileDialog, \
                             QListView, QAbstractItemView, QTreeView
 
+def natural_key(s):
+    return [int(text) if text.isdigit() else text.lower() for text in re.split('(\d+)', s)]
 
 def file_import_dialog_qt5(import_opt='multi', file_types='*.*',
                            window_title='select files',
-                           start_folder=''):
+                           start_folder='', use_start_folder=0, natural_order=1):
     print('start file selection')
     # file_types = "All Files (*);;Python Files (*.py)"
     app = QApplication(sys.argv)
@@ -53,6 +55,8 @@ def file_import_dialog_qt5(import_opt='multi', file_types='*.*',
             del w
             del app
             print('done file selection')
+            if natural_order==1:
+                filenames = sorted(filenames, key=natural_key)
             return filenames
 
     if import_opt == 'multi_from_folders':
@@ -115,7 +119,10 @@ def file_import_dialog_qt5(import_opt='multi', file_types='*.*',
             return paths
 
     if import_opt == 'all_in_folder':
-        w.dir_path = QFileDialog.getExistingDirectory(w, "Choose Directory", start_folder)
+        if use_start_folder==0:
+            w.dir_path = QFileDialog.getExistingDirectory(w, "Choose Directory", start_folder)
+        else:
+            w.dir_path = start_folder
         if w.dir_path:
             print(w.dir_path)
             w.close()
@@ -128,6 +135,8 @@ def file_import_dialog_qt5(import_opt='multi', file_types='*.*',
             del w
             del app
             print('done file selection')
+            if natural_order==1:
+                filenames = sorted(filenames, key=natural_key)
             return filenames
 
     if import_opt == 'all_in_folder_2level':

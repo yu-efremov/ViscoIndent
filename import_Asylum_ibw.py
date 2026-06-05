@@ -99,7 +99,7 @@ def import_multifiles_ibw(fileNames):
         
         
 if __name__ == '__main__':
-    # import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt
     # import_opt='single'
     # import_opt='multi_from_folders'
     start_folder = 'D:/MailCloud/AFM_data/asylum/180909-4gels_for_Aplysia_CSC38_1Bn'

@@ -18,6 +18,7 @@ from matplotlib.colors import ListedColormap # LinearSegmentedColormap
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 
 import numpy as np
@@ -112,8 +113,10 @@ class maps_view(QMainWindow):
 
         self.setGeometry(300, 300, 900, 600)
         self.setWindowTitle('Maps')
+        self.toolbar = NavigationToolbar(self.canvas1, self)
 
         layoutA = QVBoxLayout()
+        layoutA.addWidget(self.toolbar)
         layoutA.addWidget(self.canvas1)
 
         layoutB = QVBoxLayout()

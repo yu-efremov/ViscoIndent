@@ -14,10 +14,11 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QRadioButton, \
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import numpy as np
 
 from Pars_class import Pars_gen
+from window_check_zero_level import check_zero_level
 
 
 class flattenAFMwrap(QMainWindow):
@@ -34,6 +35,8 @@ class flattenAFMwrap(QMainWindow):
             self.Pars = Pars
         else:
             self.Pars = self.MAPdialog.Pars
+            # self.commongui = self.MAPdialog.commongui
+        self.CheckZeroLevel = check_zero_level(self)
         self.topo = self.Pars.topo
         self.Pars.topo2 = self.Pars.topo  # in case no selection made
         self.PL_strategy = self.Pars.PLpars.strategy
@@ -61,12 +64,16 @@ class flattenAFMwrap(QMainWindow):
             self.height = self.Pars.height
         else:
             self.btngroup1opts[0].setChecked(True)
+        self.labelThickess = QLabel('Thickness')
         self.le01 = QLineEdit(self)  # thickness
         self.le01.setText(str(self.height))
         self.le01.editingFinished.connect(self.edit_height)
-        layoutA.addWidget(self.le01)
+        layoutAB = QHBoxLayout()
+        layoutAB.addWidget(self.labelThickess)
+        layoutAB.addWidget(self.le01)
+        layoutA.addLayout(layoutAB, 1)
 
-        self.label21 = QLabel('Zero height level location strategy')
+        self.label21 = QLabel('Zero height level location strategy (activate by "locate zero height level")')
         self.btngroup2opts = [QRadioButton("plane by 3 points"),
                               QRadioButton("horizontal plane by 1 point"),
                               QRadioButton("line-by-line polynomial subtraction")]
@@ -80,8 +87,17 @@ class flattenAFMwrap(QMainWindow):
             self.btngroup2.addButton(self.btngroup2opts[i], i)
             self.btngroup2opts[i].clicked.connect(self.radio_button_clicked)
         self.btngroup2opts[0].setChecked(True)
-        self.label_emptyB = QLabel('')
-        layoutB.addWidget(self.label_emptyB)
+        self.leMaskh = QLineEdit(self)  # thickness
+        self.leMaskh.setText(str(100))
+        self.Maskh = float(self.leMaskh.text())
+        self.leMaskh.editingFinished.connect(self.edit_Maskh)
+        layoutBB = QHBoxLayout()
+        self.labelMask = QLabel('Mask above')
+        layoutBB.addWidget(self.labelMask)
+        layoutBB.addWidget(self.leMaskh)
+        layoutB.addLayout(layoutBB, 1)
+        # self.label_emptyB = QLabel('')
+        # layoutB.addWidget(self.label_emptyB)
 
         self.Selectpts_btn = QPushButton("Re-select points / Update", self)
         self.Selectpts_btn.clicked.connect(self.Selectpts_btn_clicked)
@@ -121,6 +137,7 @@ class flattenAFMwrap(QMainWindow):
         self.activateWindow()
         self.radio_button_clicked()
 
+
     def Selectpts_btn_clicked(self):
         # print(self.le1.text())
         print(self.btngroup1.checkedId())
@@ -137,14 +154,19 @@ class flattenAFMwrap(QMainWindow):
             self.fig2.colorbar(img2, ax=self.ax2)
             self.ax2.set_title("Processed image")
             self.canvas2.draw()
+        print("test1")
         # self.dialog.initUI(self.le1)
         # self.le1.setText(self.strtemp)
         # self.dialog.show()
 
     def Continue_btn_clicked(self):
+        # pass
         self.closeEvent(1)  # not good - fires twice
 
     def edit_height(self):
+        self.radio_button_clicked()
+        
+    def edit_Maskh(self):
         self.radio_button_clicked()
 
     def points_no_pressbutton(self):
@@ -154,14 +176,17 @@ class flattenAFMwrap(QMainWindow):
         # self.dialog.initUI(self.le1)
         # self.le1.setText(self.strtemp)
         # self.dialog.show()
-
+        
     def radio_button_clicked(self):
-
+        for button in  self.btngroup2.buttons():
+            button.setEnabled(True)
         print(self.btngroup1.checkedId())
         if self.btngroup1.checkedId() == 0:
             str_fig_add1 = 'no topography correction'
             self.Pars.PLpars.strategy = 0
             self.Pars.HeightfromZ = 0
+            for button in  self.btngroup2.buttons():
+                button.setEnabled(False)
         elif self.btngroup1.checkedId() == 1:
             self.Pars.HeightfromZ = 1
             self.Pars.PLpars.strategy = 3
@@ -184,11 +209,12 @@ class flattenAFMwrap(QMainWindow):
             self.Pars.height = float(self.le01.text())
         self.ax1.set_title("Original image \n" + str_fig_add1)
         self.canvas1.draw()
-        if self.Pars.PLpars.PLmode == 3:
+        if hasattr(self.Pars.PLpars, 'PLmode') and self.Pars.PLpars.PLmode == 3:
+            print("Test_line_by_line")
             mapsize = self.topo.shape
             numxlines = mapsize[0]
             numylines = mapsize[1]
-            porder = 1
+            porder = 2
             bas = np.ones([mapsize[0], mapsize[1]])
             for i in range(0, numxlines):
                x=np.array(range(numylines))
@@ -199,26 +225,32 @@ class flattenAFMwrap(QMainWindow):
                corrline = np.polyval(pval,x)
                # plt.plot(x,xLine,x, corrline)
                bas[i, :]=corrline
-
-            self.Pars.topo2 = self.topo - bas
             self.Pars.PL = bas
+            self.Pars.topo2 = self.topo - bas
+            self.Maskheight = float(self.leMaskh.text())
+            if self.Maskheight!=0.001:
+                print(self.Maskheight)
+                self.topo_temp = self.Pars.topo2
+                bas2 = np.ones([mapsize[0], mapsize[1]])
+                for i in range(0, numxlines):
+                   x=np.array(range(numylines))
+                   xLine=self.topo_temp[i,:]
+                   # plt.plot(x, xLine)
+                   nanInds = np.where(xLine>self.Maskheight)[0]
+                   pval = np.polyfit(np.delete(x, nanInds), np.delete(xLine, nanInds), porder)
+                   corrline = np.polyval(pval,x)
+                   # plt.plot(x,xLine,x, corrline)
+                   bas2[i, :]=corrline
+                self.Pars.topo2 = self.topo - bas - bas2
+                self.Pars.PL = bas + bas2
             self.ax2.clear()
             img2 = self.ax2.imshow(self.Pars.topo2, interpolation='nearest', cmap='viridis', origin='lower')
             self.fig2.colorbar(img2, ax=self.ax2)
             self.ax2.set_title("Processed image")
             self.canvas2.draw()
+        self._cid2 = self.fig2.canvas.mpl_connect(
+                "axes_enter_event", self._start_ginput2)
         self.Selectpts_btn_clicked()
-
-    def closeEvent(self, event):
-        if not hasattr(self.MAPdialog, 'commongui'):
-            print('module BEC exit (not common)')
-            print('Pars.Height = ' + str(self.Pars.height))
-            QApplication.quit()
-        else:
-            self.MAPdialog.Pars = self.Pars
-            self.close()
-            self.MAPdialog.regionselection()
-            print('module BEC exit (common)')
 
     def _start_ginput(self, event):
         self.fig.canvas.mpl_disconnect(self._cid)
@@ -226,7 +258,7 @@ class flattenAFMwrap(QMainWindow):
         mapsize = self.topo.shape
         numxlines = mapsize[0]
         numylines = mapsize[1]
-        if self.Pars.PLpars.PLmode in [1,2]:
+        if hasattr(self.Pars.PLpars, 'PLmode') and self.Pars.PLpars.PLmode in [1,2]:
             self.fig.show = lambda: None
             self.pts = self.fig.ginput(-1, timeout=0, mouse_pop=2, mouse_stop=3)  # 2 is MMB, 3 is RMB
             # print(self.pts)
@@ -259,7 +291,7 @@ class flattenAFMwrap(QMainWindow):
                 DFLm = []
                 for ii in range(len(PixN)):
                     DFLc = self.MAPdialog.Data[PixN[ii]][1][:, 1]
-                    DFLm.append(np.max(DFLc) - np.mean(DFLc[0:len(DFLc)//4]))
+                    DFLm.append(np.max(DFLc) - np.mean(DFLc[0:len(DFLc)//4])) # max DFL minus zero level
                 DFLs = np.mean(DFLm)
                 bas = bas + DFLs
         if self.Pars.PLpars.PLmode == 3:  # line-by-line
@@ -288,6 +320,69 @@ class flattenAFMwrap(QMainWindow):
         self.canvas2.draw()
         # self.show()
 
+    def _start_ginput2(self, event):
+        self.fig2.canvas.mpl_disconnect(self._cid2)
+        # self.canvas2.draw()
+        if hasattr(self.Pars, 'topo2'):
+            # Crosshair lines
+            self.ax2.clear()
+            img2 = self.ax2.imshow(self.Pars.topo2, interpolation='nearest', cmap='viridis', origin='lower')
+            # self.fig2.colorbar(img2, ax=self.ax2)
+            self.ax2.set_title("Processed image")
+            self.canvas2.draw()
+            if not hasattr(self, 'vline'):
+                self.vline = self.ax2.axvline(0, color='r', linestyle='--')
+                self.hline = self.ax2.axhline(0, color='r', linestyle='--')
+            else:
+                # self.vline.set_xdata([self.xCS])
+                # self.hline.set_ydata([self.yCS])
+                self.vline = self.ax2.axvline(self.xCS, color='r', linestyle='--')
+                self.hline = self.ax2.axhline(self.yCS, color='r', linestyle='--')
+                self.canvas2.draw()
+
+            self.pts = self.fig2.ginput(1, timeout=0, mouse_pop=2, mouse_stop=3)  # 2 is MMB, 3 is RMB
+
+            # --- Profiles figure ---
+            
+            # self.CheckZeroLevel.initUI()
+            pts = np.asarray(self.pts)
+            pts = pts.round()  # round pts coordinates
+            pts = pts.astype(int)  # coordinates to integer
+            print(pts)
+            if len(pts)>0:
+                pts2 = pts.tolist()[0]
+                print(pts2)
+                self.xCS = pts2[0]
+                self.yCS = pts2[1]
+                print(f"Clicked at: x={self.xCS}, y={self.yCS}")
+    
+                # --- Update crosshairs ---
+                self.vline.set_xdata([self.xCS])
+                self.hline.set_ydata([self.yCS])
+                # fig.canvas.draw_idle()
+    
+                # --- Extract profiles ---
+                row_profile = self.Pars.topo2[self.yCS, :]
+                col_profile = self.Pars.topo2[:, self.xCS]
+                self.row_profile = row_profile
+                self.col_profile = col_profile
+                self.CheckZeroLevel.initUI()
+
+                self.canvas2.draw()
+                self._cid2 = self.fig2.canvas.mpl_connect(
+                    "axes_enter_event", self._start_ginput2)  
+        
+        
+    def closeEvent(self, event):
+        if not hasattr(self.MAPdialog, 'commongui'):
+            print('module BEC exit (not common)')
+            print('Pars.Height = ' + str(self.Pars.height))
+            QApplication.quit()
+        else:
+            self.MAPdialog.Pars = self.Pars
+            self.close()
+            self.MAPdialog.regionselection()
+            print('module BEC exit (common)')
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
