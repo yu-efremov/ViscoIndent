@@ -138,6 +138,9 @@ if __name__ == '__main__':
     Pars['adhesion'] = 0.3
     # Pars['viscomodel'] = 'dSLS'
     # Pars['Vpars'] = np.array([1000, 0.4, 1, 0.01, 0])
+    Pars['viscomodel'] = 'sPLReta'
+    Pars['Vpars'] = np.array([1000, 0.1, 500])
+    Pars['height'] = 1000
 
     indentationfull = np.array([0, 1])  # arbitrary indentation profile
     t1 = mtime.time()
@@ -164,3 +167,4 @@ if __name__ == '__main__':
     plt.plot(timeL, forceL)
     plt.xlabel('Time')
     plt.ylabel('Force')
+    #plt.close("all")

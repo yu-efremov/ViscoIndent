@@ -53,8 +53,11 @@ def ting_numerical(par, adhesion_pars, Poisson, probe_size, dT, MaxInd, Height, 
     else:
         BEC = np.ones(len(indentationfull))
         BECspeed = np.ones(len(indentationfull))
+    if probe_geom == 'sphere_correction1':
+        BEC = BEC*(1-indentationfull/(10*probe_size))
+        BECspeed = BECspeed*(1-indentationfull/(10*probe_size))
 
-    if probe_geom == 'sphere':
+    if probe_geom in {'sphere', 'sphere_correction1'}:
         power = 1.5
         K1 = 4*probe_size**0.5/3
         K12 = probe_size**0.5
@@ -160,12 +163,12 @@ def ting_numerical(par, adhesion_pars, Poisson, probe_size, dT, MaxInd, Height, 
             ForceT[:MaxInd] += adhesion_force
         if adhesion_region  == 'retraction' or adhesion_region  == 'both':
             ForceT[MaxInd:endofalgorithm2] += adhesion_force
-    if adhesion_model == 'JKR' and viscomodel == 'elastic' and probe_geom == 'sphere':
+    if adhesion_model == 'JKR' and viscomodel == 'elastic' and probe_geom in {'sphere', 'sphere_correction1'}:
         if adhesion_region  == 'approach' or adhesion_region  == 'both':
             ForceT[:MaxInd], cntrad[:MaxInd] = JKR(Et[0], adhesion_force, Poisson, probe_size, indentationfull[:MaxInd])
         if adhesion_region  == 'retraction' or adhesion_region  == 'both':
             ForceT[MaxInd:endofalgorithm2], cntrad[MaxInd:endofalgorithm2] = JKR(Et[0], adhesion_force, Poisson, probe_size, indentationfull[MaxInd:endofalgorithm2])
-    if adhesion_model == 'JKR_transition' and viscomodel == 'elastic' and probe_geom == 'sphere':
+    if adhesion_model == 'JKR_transition' and viscomodel == 'elastic' and probe_geom in {'sphere', 'sphere_correction1'}:
          if adhesion_region  == 'approach':
              pass
          if adhesion_region  == 'retraction' or adhesion_region  == 'both':
@@ -269,14 +272,17 @@ if __name__ == '__main__':
     viscomodel = 'sPLR'
     viscomodel = 'elastic'
     probe_geom = 'sphere'
+    #probe_geom = 'sphere_correction1'
     adhesion_pars = ['JKR_transition', 'retraction', 0.03]  # JKR_transition
+    adhesion_pars = ['none', 'none', 0.03]  # JKR_transition
+    viscomodel = 'sPLReta'; par = [1000, 0.1, 200]; Height = 1000; 
     t = np.linspace(0, 2, MaxInd*2+1)
     t = np.linspace(0, 3, MaxInd*3)
     indentationfull = np.piecewise(t, [t <= 1, t >= 1], [lambda t: t, lambda t: 2-t])
     ind_magnitude = 50
     indentationfull = ind_magnitude *indentationfull
     # plt.plot(t, indentationfull)
-    par = [10000, 0.1, 10, 1, 10]  # par[0] = EHertz in elastic
+    # par = [10000, 0.1, 10, 1, 10]  # par[0] = EHertz in elastic
     t1 = time.time()
     ForceT, cntrad, contact_time, t1_ndx, Et, ForceR = ting_numerical(par, adhesion_pars,
     Poisson, probe_size, dT, MaxInd, Height, viscomodel, probe_geom, indentationfull)

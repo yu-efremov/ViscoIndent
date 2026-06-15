@@ -59,9 +59,10 @@ class set_Pars(QMainWindow):
         self.probe_type_label = QLabel('Indenter type: ')
         self.probe_type = QLabel(self.Pars.TipType)
         self.probe_geoms_label = QLabel('Indenter geometry')
-        self.probe_geoms = ['sphere', 'cone', 'cylinder', 'spheroid', 'unsupported']
+        self.probe_geoms = ['sphere', 'sphere_correction1', 'cone', 'cylinder', 'spheroid', 'unsupported']
         self.cbProbe = QComboBox()
         self.cbProbe.addItems(self.probe_geoms)
+        self.labelGeomDescription = QLabel('')
 
         self.label_R = QLabel()  # self.probe_geom_shape
         self.le_R = QLineEdit(self)
@@ -195,6 +196,7 @@ class set_Pars(QMainWindow):
         layoutA.addWidget(self.experiment_name)
         layoutA.addLayout(layoutAA)
         layoutA.addLayout(layoutAAB)
+        layoutA.addWidget(self.labelGeomDescription)
         layoutA.addLayout(layoutAB)
         layoutA.addLayout(layoutAC)
         layoutA.addLayout(layoutAD)
@@ -276,30 +278,23 @@ class set_Pars(QMainWindow):
         self.activateWindow()
 
     def initial_check_fill(self):
-
+        self.geoms = [['sphere', 0,'radius', '[nm]', "Hertz's model (paraboloid)"],
+                 ['sphere_correction1', 1, 'radius', '[nm]', "Hertz's model with correction \nfrom doi:10.1016/j.micron.2012.07.006"],
+                 ['cone', 2,'half-opening angle', '[degrees]', "Sneddon's model"],
+                 ['cylinder', 3, 'radius', '[nm]', "cylinder"],
+                 ['spheroid', 4, 'radius', '[nm]', "spheroid compression"],
+                 ['unsupported', 5, ' ', ' ', "no description"],
+                 ]
         if hasattr(self.Pars, 'probe_shape'):
-            if self.Pars.probe_shape == 'sphere':
-                self.probe_geom_ndx = 0
-                self.probe_geom_shape = 'radius'
-                self.probe_geom_units = '[nm]'
-            elif self.Pars.probe_shape == 'cone':
-                self.probe_geom_ndx = 1
-                self.probe_geom_shape = 'half-opening angle'
-                self.probe_geom_units = '[degrees]'
-            elif self.Pars.probe_shape == 'cylinder':
-                self.probe_geom_ndx = 2
-                self.probe_geom_shape = 'radius'
-                self.probe_geom_units = '[nm]'
-            elif self.Pars.probe_shape == 'spheroid':
-                self.probe_geom_ndx = 3
-                self.probe_geom_shape = 'spheroid_radius'
-                self.probe_geom_units = '[nm]'
-            else:
-                self.probe_geom_ndx = 4
+            self.probe_geom_ndx = 5
+            for geom_list in self.geoms:
+                if self.Pars.probe_shape == geom_list[0]:
+                    print(geom_list[0])
+                    self.probe_geom_ndx = geom_list[1]
         else:
-            self.probe_geom_ndx = 0
-            self.probe_geom_shape = 'radius'
-            self.probe_geom_units = '[nm]'
+            self.probe_geom_ndx = 5
+        self.cbProbe.setCurrentIndex(self.probe_geom_ndx)
+        self.change_geometry()
         self.cbProbe.setCurrentIndex(self.probe_geom_ndx)
         self.label_R.setText(self.probe_geom_shape)
         self.le_R.setText(str(self.Pars.probe_dimension))
@@ -427,24 +422,22 @@ class set_Pars(QMainWindow):
         self.Pars.downsampling = self.cb_downsampling_types.currentIndex()
         self.Pars.depth_start = float(self.le_depth_start.text())
         self.Pars.depth_end = float(self.le_depth_end.text())
-        # print (self.Pars.probe_shape)
+        print (self.Pars.probe_shape)
         self.initial_check_fill()
         # self.initUI()
         # pass
 
     def change_geometry(self):
         self.probe_geom_ndx = self.cbProbe.currentIndex()
-        if self.probe_geom_ndx == 0:
-            self.probe_geom_shape = 'radius'
-            self.probe_geom_units = '[nm]'
-        elif self.probe_geom_ndx == 1:
-            self.probe_geom_shape = 'half-opening angle'
-            self.probe_geom_units = '[degrees]'
-        elif self.probe_geom_ndx == 2:
-            self.probe_geom_shape = 'radius'
-            self.probe_geom_units = '[nm]'
+        for geom_list in self.geoms:
+            if self.probe_geom_ndx == geom_list[1]:
+                self.probe_geom_shape = geom_list[2]
+                self.probe_geom_units = geom_list[3]
+                self.probe_geom_comment = geom_list[4]
         self.label_R.setText(self.probe_geom_shape)
         self.label_R_units.setText(str(self.probe_geom_units))
+        self.labelGeomDescription.setText(self.probe_geom_comment)
+
 
     def changeviscomodel(self):
         self.viscomodel = str(self.cb_models.currentText())
