@@ -92,12 +92,15 @@ def HertzBEC(h, K1, Poisson, Radius, power, Height, level0, modelprobe, ind):
             BEC = np.ones(len(ind))
             # print('case2')
         # Force = abs(K1*h[0]*(ind-h[1])**(power)*BEC)
-        Force = K1*h[0]*abs(ind-h[1])**(power)*BEC
     else:
         BEC = bottom_effect_correction(Poisson, Radius, level0-h[1], modelprobe, ind-h[1])[0]
-        # Force = abs(K1*h[0]*(ind-h[1])**(power)*BEC)
-        Force = K1*h[0]*abs(ind-h[1])**(power)*BEC
         # print('case3')
+        
+    if modelprobe =='sphere_correction1':
+        BEC = BEC*(1-ind/(10*Radius))
+    
+    Force = K1*h[0]*abs(ind-h[1])**(power)*BEC
+
     return Force  # , BEC
 
 def DMTBEC(h, K1, Poisson, Radius, power, Height, level0, modelprobe, ind):
@@ -114,11 +117,12 @@ def DMTBEC(h, K1, Poisson, Radius, power, Height, level0, modelprobe, ind):
         else:
             BEC = np.ones(len(ind))
             # print('case2')
-        Force = K1*h[0]*abs((ind-h[1]))**(power)*BEC + h[2]
+        #Force = K1*h[0]*abs((ind-h[1]))**(power)*BEC + h[2]
     else:
         BEC = bottom_effect_correction(Poisson, Radius, level0-h[1], modelprobe, ind-h[1])[0]
-        Force = K1*h[0]*abs((ind-h[1]))**(power)*BEC + h[2]
         print('case3')
+
+    Force = K1*h[0]*abs((ind-h[1]))**(power)*BEC + h[2]
     return Force
 
 def JKRnoBEC(h, K1, Poisson, Radius, power, Height, level0, modelprobe, ind):
@@ -223,7 +227,7 @@ def tingsprocessingd1(Pars, curve_data):
 
         modelprobe = modelprobeStr
 
-        if modelprobe == 'sphere':
+        if modelprobe in {'sphere', 'sphere_correction1'}:
             K1 = 4*Radius**0.5/3
             power = 1.5
         elif modelprobe == 'cone' or modelprobe == 'pyramid':
@@ -242,7 +246,7 @@ def tingsprocessingd1(Pars, curve_data):
             # K12 = Radius**0.5 
 
         K1 = K1/(1-Poisson**2)*1e-9
-
+        
         # plt.imshow(Pars.PL'],interpolation='nearest',cmap='viridis', origin='Lower')
         currentcurve = curve_data[1][:, 0:2]  # or DataSel
         # plt.plot(currentcurve[:,0], currentcurve[:,1])

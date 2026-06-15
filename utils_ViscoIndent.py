@@ -151,7 +151,7 @@ def curve_from_saved_pars(Pars, cData, cResults):
     # except:
     #     Fixedpars = np.array([[0, 0, 0], [0, 0, 0]], dtype=float)
 
-    if modelprobe == 'sphere':
+    if modelprobe in {'sphere', 'sphere_correction1'}:
         K1 = 4*Radius**0.5/3
         power = 1.5
     elif modelprobe == 'cone' or modelprobe == 'pyramid':
